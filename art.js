@@ -388,6 +388,15 @@
       box(-14, -34, 28, 34, '#3a2a1c', OUT, 2, 1.4); G.beginPath(); G.arc(0, -34, 14, Math.PI, 0); G.fillStyle = '#3a2a1c'; G.fill(); G.strokeStyle = OUT; G.stroke();
       line(0, -106, 0, -128, '#6a4424', 2.4); poly([[0, -128], [18, -122], [0, -115]], '#e8584a', OUT, 1.2);
     },
+    scout() {
+      shadow(24, 7, 1, 0.3);
+      poly([[-27, -2], [0, -50], [27, -2]], lg(0, -50, 0, -2, [[0, '#f4e7c6'], [1, '#d2ba8a']]), OUT, 1.8);
+      poly([[-27, -2], [0, -50], [-9, -2]], 'rgba(0,0,0,.12)');
+      poly([[-9, -2], [0, -32], [9, -2]], '#4a3523', OUT, 1.2);
+      line(0, -50, 0, -70, '#6a4424', 2); poly([[0, -70], [15, -65], [0, -60]], '#4fa8d8', OUT, 1);
+      line(15, -6, 26, -22, '#6a4424', 2.4); box(21, -29, 13, 5, '#b98550', OUT, 1, 1);
+      box(-24, -9, 9, 7, '#b98550', OUT, 1, 1);
+    },
     goldmine() {
       shadow(28, 8, 2, 0.32);
       poly([[-25, 0], [-23, -16], [-12, -30], [2, -35], [16, -29], [24, -14], [26, 0]], lg(-22, -35, 22, 0, [[0, '#d9c488'], [1, '#85703a']]), OUT, 1.7);
@@ -427,7 +436,7 @@
       const d = big[k] || [100, 124, 50, 106];
       ART.bld[k] = mk(d[0], d[1], d[2], d[3], BLD[k]);
     }
-    const noV = { hall: 1, monument: 1, port: 1, village: 1, castle: 1, splitter: 1 };
+    const noV = { scout: 1, hall: 1, monument: 1, port: 1, village: 1, castle: 1, splitter: 1 };
     for (const k of Object.keys(BLD)) {
       if (noV[k]) continue;
       const d = big[k] || [100, 124, 50, 106]; ART.bldV[k] = {};

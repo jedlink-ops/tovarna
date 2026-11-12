@@ -13,8 +13,10 @@
   const WORK_RANGE = 6, HOUSE_SLOTS = 2;
   const CONV_SPEED = 2.4;
 
+  let SEED = 0, SALT = 0, noSave = false, lastSaveAt = 0;
+  const setSalt = () => { SALT = SEED ? (Math.imul(SEED, 2654435761) | 0) : 0; };
   function hash(x, y) {
-    let h = (x * 374761393 + y * 668265263) | 0;
+    let h = (x * 374761393 + y * 668265263 + SALT) | 0;
     h = (h ^ (h >>> 13)) * 1274126177 | 0;
     return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
   }
@@ -59,24 +61,25 @@
     port:      { n: 'Přístav', kind: 'proj', proj: true, size: 2, cost: { plank: 40, iron: 15, tool: 6 }, desc: 'Vzdálený projekt. Po dokončení vykupuje zboží: každé 2 kusy = 1 zlato.' },
     village:   { n: 'Horská osada', kind: 'proj', proj: true, size: 2, cost: { stone: 60, plank: 30, bread: 20 }, desc: 'Vzdálený projekt. Po dokončení pracují všechny budovy o 20 % rychleji.' },
     castle:    { n: 'Lesní hrad', kind: 'proj', proj: true, size: 2, range: 12, mode: 'kill', killT: 2.5, water: true, cost: { stone: 80, plank: 30, iron: 30, tool: 10 }, desc: 'Vzdálený projekt. Po dokončení chrání okolí do 12 polí před vlky i ohněm.' },
+    scout:     { n: 'Průzkumná chata', kind: 'scout', site: true, on: 'build', cost: { wood: 25, stone: 12 }, desc: 'Po dokončení se rozestoupí mlha v nejbližší neprozkoumané oblasti (do 10 polí). Materiál dovez pásem.', hint: 'Staví se na trávu do 10 polí od mlhy (neprozkoumané oblasti).' },
     monument:  { n: 'Velký chrám', kind: 'wonder', site: true, on: 'build', cost: { stone: 200, plank: 100, iron: 50, tool: 12, jewel: 10 }, desc: 'Dílo celého údolí. Je to staveniště: dovez sem pásem všechen materiál a vyhráváš!', hint: 'Staví se na trávu.' },
   };
   const BRIDGE_COST = { plank: 2 };
   const UPG = [null, null, { plank: 6, stone: 8 }, { plank: 12, stone: 14, iron: 6 }];
-  const PALETTE = ['erase', 'conveyor', 'splitter', 'lumber', 'quarry', 'house', 'tower', 'guard', 'hunter', 'well', 'sawmill', 'warehouse', 'farm', 'bakery', 'fisher', 'mine', 'forge', 'workshop', 'goldmine', 'jeweler', 'monument'];
-  const UNLOCK_AT = { erase: 1, conveyor: 1, lumber: 1, quarry: 1, house: 1, tower: 2, sawmill: 2, warehouse: 2, splitter: 3, guard: 3, hunter: 3, well: 3, farm: 3, bakery: 3, fisher: 3, mine: 4, forge: 4, workshop: 5, goldmine: 6, jeweler: 6, monument: 9 };
+  const PALETTE = ['erase', 'conveyor', 'splitter', 'lumber', 'quarry', 'house', 'scout', 'tower', 'guard', 'hunter', 'well', 'sawmill', 'warehouse', 'farm', 'bakery', 'fisher', 'mine', 'forge', 'workshop', 'goldmine', 'jeweler', 'monument'];
+  const UNLOCK_AT = { erase: 1, conveyor: 1, lumber: 1, quarry: 1, house: 1, scout: 2, tower: 2, sawmill: 2, warehouse: 2, splitter: 3, guard: 3, hunter: 3, well: 3, farm: 3, bakery: 3, fisher: 3, mine: 4, forge: 4, workshop: 5, goldmine: 6, jeweler: 6, monument: 9 };
   const BRIDGE_LVL = 3, FOOD_LVL = 3;
 
   // ---------- Levely ----------
   const LEVELS = [
     { name: 'Osada', goals: [{ k: 'dl', r: 'wood', n: 15 }, { k: 'dl', r: 'stone', n: 10 }, { k: 'build', b: 'house', n: 1 }], bonus: { wood: 25, stone: 10 } },
-    { name: 'Řemeslníci', goals: [{ k: 'dl', r: 'plank', n: 15 }, { k: 'build', b: 'warehouse', n: 1 }, { k: 'build', b: 'house', n: 3 }], bonus: { wood: 30, stone: 20 } },
+    { name: 'Řemeslníci', goals: [{ k: 'dl', r: 'plank', n: 15 }, { k: 'build', b: 'warehouse', n: 1 }, { k: 'build', b: 'house', n: 3 }, { k: 'reg', n: 1 }], bonus: { wood: 30, stone: 20 } },
     { name: 'Úroda a mosty', goals: [{ k: 'build', b: 'bridge', n: 2 }, { k: 'dl', r: 'bread', n: 10 }, { k: 'dl', r: 'fish', n: 6 }], bonus: { plank: 25, wood: 25 } },
-    { name: 'Železná doba', goals: [{ k: 'dl', r: 'iron', n: 12 }, { k: 'dl', r: 'stone', n: 40 }], bonus: { plank: 25, iron: 5, stone: 20 } },
+    { name: 'Železná doba', goals: [{ k: 'dl', r: 'iron', n: 12 }, { k: 'dl', r: 'stone', n: 40 }, { k: 'reg', n: 3 }], bonus: { plank: 25, iron: 5, stone: 20 } },
     { name: 'Dílny', goals: [{ k: 'dl', r: 'tool', n: 6 }, { k: 'dl', r: 'iron', n: 20 }, { k: 'build', b: 'workshop', n: 1 }, { k: 'build', b: 'port', n: 1 }], bonus: { plank: 30, iron: 10, stone: 30 } },
-    { name: 'Zlatá horečka', goals: [{ k: 'dl', r: 'gold', n: 10 }, { k: 'dl', r: 'jewel', n: 4 }, { k: 'build', b: 'warehouse', n: 3 }], bonus: { plank: 40, iron: 20 } },
+    { name: 'Zlatá horečka', goals: [{ k: 'dl', r: 'gold', n: 10 }, { k: 'dl', r: 'jewel', n: 4 }, { k: 'build', b: 'warehouse', n: 3 }, { k: 'reg', n: 5 }], bonus: { plank: 40, iron: 20 } },
     { name: 'Bohatství', goals: [{ k: 'dl', r: 'plank', n: 60 }, { k: 'dl', r: 'iron', n: 30 }, { k: 'dl', r: 'bread', n: 40 }, { k: 'dl', r: 'tool', n: 10 }, { k: 'build', b: 'village', n: 1 }], bonus: { stone: 80, tool: 6 } },
-    { name: 'Metropole', goals: [{ k: 'dl', r: 'tool', n: 20 }, { k: 'dl', r: 'jewel', n: 12 }, { k: 'build', b: 'house', n: 10 }, { k: 'build', b: 'castle', n: 1 }], bonus: { stone: 120, plank: 60, iron: 30, jewel: 4 } },
+    { name: 'Metropole', goals: [{ k: 'dl', r: 'tool', n: 20 }, { k: 'dl', r: 'jewel', n: 12 }, { k: 'build', b: 'house', n: 10 }, { k: 'build', b: 'castle', n: 1 }, { k: 'reg', n: 7 }], bonus: { stone: 120, plank: 60, iron: 30, jewel: 4 } },
     { name: 'Velký chrám', goals: [{ k: 'build', b: 'monument', n: 1 }], bonus: {} },
   ];
 
@@ -110,10 +113,15 @@
       }
     }
   }
-  function genTerrain() {
+  let ATT = 0;
+  function genOnce() {
     terrain.fill(G);
-    const F = (x, y, r) => blob(x, y, r, FOREST), R = (x, y, r) => blob(x, y, r, ROCK), O = (x, y, r) => blob(x, y, r, ORE),
-          GD = (x, y, r) => blob(x, y, r, GOLD), WA = (x, y, r) => blob(x, y, r, WATER);
+    let rs = (SEED + ATT * 7919) >>> 0;
+    const rnd = () => { rs = (rs + 0x6D2B79F5) | 0; let t = Math.imul(rs ^ (rs >>> 15), 1 | rs); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const jit = (x, y) => (SEED ? (rnd() - 0.5) * 2 * ((x >= 16 && x < 32 && y >= 16 && y < 32) ? 1.3 : 3.2) : 0);
+    const bl = (x, y, r, t) => { if (SEED) { const jx = jit(x, y), jy = jit(x, y); blob(x + jx, y + jy, r * (0.82 + 0.36 * rnd()), t); } else blob(x, y, r, t); };
+    const F = (x, y, r) => bl(x, y, r, FOREST), R = (x, y, r) => bl(x, y, r, ROCK), O = (x, y, r) => bl(x, y, r, ORE),
+          GD = (x, y, r) => bl(x, y, r, GOLD), WA = (x, y, r) => bl(x, y, r, WATER);
     // střed (začátek): les vlevo nahoře, skála vpravo dole, rybníček dole
     F(19.5, 21.5, 2.9); F(29, 19, 2.4); F(20, 29, 2.3); R(29.5, 28, 2.3); R(18, 25, 1.2); WA(23.5, 29.5, 1.7);
     // sever: velké jezero uprostřed, lesy kolem
@@ -132,10 +140,20 @@
     GD(6, 42, 2.3); O(9, 38, 2.8); F(4, 36, 2.8); F(10, 45, 2.6); R(11, 41, 2.2); WA(4, 45, 3);
     // severozápad
     GD(5, 5, 2.3); GD(9, 10, 1.9); F(4, 12, 2.8); F(10, 3, 2.8); R(4, 9, 2.8); O(3, 3, 2.2); WA(9, 7, 3.3);
+    if (SEED) {
+      // náhodné doplňky v každé oblasti
+      for (let ri = 1; ri < 9; ri++) {
+        const [rx, ry] = ORDER[ri], n = 2 + Math.floor(rnd() * 3);
+        for (let k = 0; k < n; k++) {
+          const t = [FOREST, FOREST, ROCK, WATER, ORE, GOLD][Math.floor(rnd() * 6)];
+          blob(rx * RS + 2 + rnd() * (RS - 4), ry * RS + 2 + rnd() * (RS - 4), 1.4 + rnd() * 1.8, t);
+        }
+      }
+    }
     // řeky (čím dál šířejí)
-    river(true, 32, 2, 1.1, 0.4);
-    river(false, 32, 3, 1.1, 1.7);
-    river(true, 13, 3, 1.1, 2.6);
+    river(true, 32 + (SEED ? Math.round((rnd() - 0.5) * 5) : 0), 2, 1.1, 0.4 + (SEED ? rnd() * 6 : 0));
+    river(false, 32 + (SEED ? Math.round((rnd() - 0.5) * 5) : 0), 3, 1.1, 1.7 + (SEED ? rnd() * 6 : 0));
+    river(true, 13 + (SEED ? Math.round((rnd() - 0.5) * 5) : 0), 3, 1.1, 2.6 + (SEED ? rnd() * 6 : 0));
     // volný plácek kolem radnice
     for (let y = 18; y < 33; y++) for (let x = 18; x < 33; x++) if (Math.hypot(x - 25, y - 25) < 3.7) terrain[y * W + x] = G;
     // písek kolem vody
@@ -149,6 +167,22 @@
     for (const i of mark) terrain[i] = SAND;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) gIdx[y * W + x] = clamp(Math.floor((vnoise(x * 0.3, y * 0.3) * 0.75 + hash(x, y) * 0.25) * 16), 0, 15);
   }
+  function startOk() {
+    const seen = new Uint8Array(W * H), q = [[24, 26]]; seen[26 * W + 24] = 1; let f = 0, r = 0;
+    const inC = (x, y) => x >= 16 && x < 32 && y >= 16 && y < 32;
+    const fs = new Set(), rsx = new Set();
+    while (q.length) {
+      const [x, y] = q.pop();
+      for (let d = 0; d < 4; d++) {
+        const nx = x + DX[d], ny = y + DY[d]; if (!inC(nx, ny) || seen[ny * W + nx]) continue;
+        const t = terrain[ny * W + nx];
+        if (t === G || t === SAND) { seen[ny * W + nx] = 1; q.push([nx, ny]); }
+        else if (t === FOREST) fs.add(ny * W + nx); else if (t === ROCK) rsx.add(ny * W + nx);
+      }
+    }
+    return fs.size >= 6 && rsx.size >= 6;
+  }
+  function genTerrain() { for (ATT = 0; ATT < 40; ATT++) { genOnce(); if (!SEED || startOk()) return; } }
   const PROJ_POS = {};
   function placeProjects() {
     const WANT = { port: [24, 12, 1], village: [41, 24, 2], castle: [8, 23, 4] };
@@ -179,6 +213,7 @@
   let fly = null;
   const popups = [], puffs = [], confetti = [], wolves = [];
   const DAY_LEN = 180;
+  let stat = { prod: {}, cons: {} }, snaps = [], nextSnap = 0, undoStack = [], curOps = null;
   let clock = 20, sleeping = false, storm = { warn: 0, t: 0 }, nextStorm = DAY_LEN * 3.5, nextFire = DAY_LEN * 4.5, spawnT = 6, forestList = [], nightWarned = -1;
 
   function newState() {
@@ -192,11 +227,36 @@
       const p = PROJ_POS[t]; if (!p) continue;
       const pb = makeB(t, p[0], p[1], 0); pb.site = { need: Object.assign({}, B[t].cost), have: {} }; addB(pb);
     }
+    opened = [true, false, false, false, false, false, false, false, false]; stat = { prod: {}, cons: {} }; snaps = []; undoStack = []; curOps = null;
     clock = 20; sleeping = false; storm = { warn: 0, t: 0 }; nextStorm = DAY_LEN * 3.5; nextFire = DAY_LEN * 4.5; wolves.length = 0; nightWarned = -1;
     recalc();
   }
-  const unlockedRegions = () => Math.min(9, lvl);
-  const regionOpen = (x, y) => regIdxAt(x, y) < unlockedRegions();
+  let opened = [true, false, false, false, false, false, false, false, false];
+  const openedCount = () => opened.filter(Boolean).length;
+  const regionOpen = (x, y) => inb(x, y) && opened[regIdxAt(x, y)];
+  function scoutCost() {
+    const n = openedCount();
+    if (n <= 1) return { wood: 25, stone: 12 };
+    if (n === 2) return { wood: 20, stone: 20, plank: 10 };
+    const c = { stone: 10 + 6 * n, plank: 6 + 4 * n }; if (lvl >= FOOD_LVL) c.bread = 4 + 2 * n; return c;
+  }
+  const costOf = t => (t === 'scout' ? scoutCost() : B[t].cost);
+  function scoutTargets(x, y) {
+    const out = [];
+    for (let r = 1; r < 9; r++) {
+      if (opened[r]) continue;
+      const [rx, ry] = ORDER[r], x0 = rx * RS, y0 = ry * RS;
+      const dx = Math.max(x0 - x, 0, x - (x0 + RS - 1)), dy = Math.max(y0 - y, 0, y - (y0 + RS - 1)), d = Math.hypot(dx, dy);
+      if (d <= 10) out.push([r, d]);
+    }
+    return out.sort((a, b) => a[1] - b[1]).map(p => p[0]);
+  }
+  function openRegion(r) {
+    if (opened[r]) return; opened[r] = true;
+    if (quiet) return;
+    const [rx, ry] = ORDER[r]; burst(); toast('🧭 Objevena oblast: ' + REG_NAMES[r], 2600);
+    flyTo((rx * RS + RS / 2) * T, (ry * RS + RS / 2) * T);
+  }
   const size = b => B[b.type].size || 1;
 
   function makeB(type, x, y, dir) {
@@ -364,6 +424,7 @@
     if (!Object.keys(t.site.need).every(k => (t.site.have[k] || 0) >= t.site.need[k])) return;
     const up = t.site.up; t.site = null; if (up) t.up++;
     recalc();
+    if (t.type === 'scout') { const c = scoutTargets(t.x, t.y); if (c.length) openRegion(c[0]); }
     if (!quiet) { popups.push({ x: t.x * T + T, y: t.y * T, t: 0, txt: '🎉' }); toast(up ? '⬆ ' + B[t.type].n + ' vylepšena!' : '🏗 ' + B[t.type].n + ' dokončena!', 2400); }
   }
 
@@ -377,7 +438,7 @@
     if (t.broken || t.fire > 0) return false;
     if (t.site) {
       const n = t.site.need[item];
-      if (n && (t.site.have[item] || 0) < n) { t.site.have[item] = (t.site.have[item] || 0) + 1; siteCheck(t); return true; }
+      if (n && (t.site.have[item] || 0) < n) { t.site.have[item] = (t.site.have[item] || 0) + 1; stat.cons[item] = (stat.cons[item] || 0) + 1; siteCheck(t); return true; }
       return false;
     }
     switch (B[t.type].kind) {
@@ -440,17 +501,18 @@
       if (b.out.length >= 3) { b.state = 'blocked'; return; }
       if (r.in) {
         for (const k in r.in) if ((b.inv[k] || 0) < r.in[k]) { b.state = 'input'; b.need = k; return; }
-        for (const k in r.in) b.inv[k] -= r.in[k];
+        for (const k in r.in) { b.inv[k] -= r.in[k]; stat.cons[k] = (stat.cons[k] || 0) + r.in[k]; }
       }
       b.working = true; b.t = 0;
     }
     b.state = 'ok';
     const hungry = b.house && b.house.hungry;
     b.t += dt * b.bonus * (1 + 0.35 * (b.up - 1)) * (cnt.village ? 1.2 : 1) * (hungry ? 0.5 : 1);
-    if (b.t >= r.t) { b.out.push(r.out); b.working = false; b.t = 0; }
+    if (b.t >= r.t) { b.out.push(r.out); stat.prod[r.out] = (stat.prod[r.out] || 0) + 1; b.working = false; b.t = 0; }
   }
   function update(dt) {
     clock += dt;
+    if (clock >= nextSnap) { nextSnap = clock + 5; snaps.push([clock, Object.assign({}, stat.prod), Object.assign({}, stat.cons)]); if (snaps.length > 13) snaps.shift(); }
     if (!quiet) worldTick(dt);
     for (const b of blds.slice()) {
       if (b.site) continue;
@@ -485,6 +547,7 @@
     if (!inb(x, y) || cell(x, y)) return false;
     const t = terrain[y * W + x];
     if (type === 'conveyor') return landOk(t) || (t === WATER && lvl >= BRIDGE_LVL);
+    if (type === 'scout' && !scoutTargets(x, y).length) return false;
     switch (B[type].on) {
       case 'forest': return t === FOREST;
       case 'rock': return t === ROCK;
@@ -512,42 +575,64 @@
     if (!canAfford(c)) { warn('Chybí ti: ' + missTxt(c)); return false; }
     for (const k in c) stock[k] -= c[k];
     const b = makeB('conveyor', x, y, dir); b.bridge = isBridge;
-    addB(b); recalc();
+    addB(b); recalc(); recOp({ k: 'add', b, paid: Object.assign({}, c) });
     return true;
   }
   function place(type, x, y, dir) {
     if (type === 'conveyor') return placeConveyor(x, y, dir === undefined ? rot : dir);
     const d = B[type];
     if (!inb(x, y)) return false;
-    if (!regionOpen(x, y)) { warn('🔒 Tahle oblast je zamčená – splň level ' + regIdxAt(x, y)); return false; }
+    if (!regionOpen(x, y)) { warn('🔒 Neprozkoumáno – postav Průzkumnou chatu poblíž'); return false; }
     if (cell(x, y)) return false;
     if (!validTile(type, x, y)) { warn(d.hint || 'Sem to nejde postavit'); return false; }
     const b = makeB(type, x, y, 0);
     if (d.site) {
-      b.site = { need: Object.assign({}, d.cost), have: {} };
-      addB(b); recalc(); save();
+      b.site = { need: Object.assign({}, costOf(type)), have: {} };
+      addB(b); recalc(); save(); recOp({ k: 'add', b, paid: {} });
       popups.push({ x: x * T + T / 2, y: y * T + T * 0.2, t: 0, txt: '🏗' });
       toast('🏗 Staveniště! Materiál sem dovez dopravníkem.', 2800);
       return true;
     }
     if (!canAfford(d.cost)) { warn('Chybí ti: ' + missTxt(d.cost)); return false; }
     for (const k in d.cost) stock[k] -= d.cost[k];
-    addB(b); recalc();
+    addB(b); recalc(); recOp({ k: 'add', b, paid: Object.assign({}, d.cost) });
     popups.push({ x: x * T + T / 2, y: y * T + T * 0.2, t: 0, txt: '✨' });
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) { /* nic */ } }
     if (d.work && !b.house) warn('👷 Tady chybí chaloupka v dosahu ' + WORK_RANGE + ' polí');
     save();
     return true;
   }
-  function demolish(b) {
+  function demolish(b, rec) {
     if (b.type === 'hall' || B[b.type].proj) return;
-    if (b.site) { for (const k in b.site.have) stock[k] = Math.min(capStock, stock[k] + Math.floor(b.site.have[k] * 0.5)); if (!b.site.up) { removeB(b); recalc(); if (sel === b) sel = null; return; } }
-    const c = b.bridge ? BRIDGE_COST : B[b.type].cost;
-    if (!B[b.type].site) for (const k in c) stock[k] = Math.min(capStock, stock[k] + Math.floor(c[k] * 0.5));
+    const refund = {}, add = (k, n) => { if (n > 0) refund[k] = (refund[k] || 0) + n; };
+    if (b.site) for (const k in b.site.have) add(k, Math.floor(b.site.have[k] * 0.5));
+    if (!(b.site && !b.site.up)) {
+      const c = b.bridge ? BRIDGE_COST : B[b.type].cost;
+      if (!B[b.type].site) for (const k in c) add(k, Math.floor(c[k] * 0.5));
+    }
+    for (const k in refund) stock[k] = Math.min(capStock, stock[k] + refund[k]);
     removeB(b); recalc();
     if (sel === b) sel = null;
+    if (rec !== false) recOp({ k: 'del', b, refund });
   }
-
+  function recOp(op) { if (curOps) curOps.push(op); else pushUndo([op]); }
+  function pushUndo(ops) { if (!ops.length) return; undoStack.push(ops); if (undoStack.length > 40) undoStack.shift(); }
+  function undo() {
+    const ops = undoStack.pop(); if (!ops) return;
+    for (let i = ops.length - 1; i >= 0; i--) {
+      const o = ops[i];
+      if (o.k === 'add') {
+        if (blds.indexOf(o.b) < 0 || (B[o.b.type].site && !o.b.site)) continue;
+        for (const k in o.paid) stock[k] = Math.min(capStock, stock[k] + o.paid[k]);
+        if (o.b.site) for (const k in o.b.site.have) stock[k] = Math.min(capStock, stock[k] + o.b.site.have[k]);
+        removeB(o.b); if (sel === o.b) sel = null;
+      } else {
+        if (cell(o.b.x, o.b.y)) continue;
+        addB(o.b); for (const k in o.refund) stock[k] = Math.max(0, stock[k] - o.refund[k]);
+      }
+    }
+    recalc(); updateHUD(); save(); toast('↩ Vráceno zpět', 1100);
+  }
   // ---------- Hledání cesty (tutoriál + testy) ----------
   function bfsPath(sx, sy, goalFn, allowWater) {
     const prev = new Map(), q = [[sx, sy]]; prev.set(sy * W + sx, -1);
@@ -569,7 +654,7 @@
   }
 
   // ---------- Úkoly / levely ----------
-  function goalVal(g) { return g.k === 'dl' ? delivered[g.r] - base[g.r] : (cnt[g.b] || 0); }
+  function goalVal(g) { return g.k === 'dl' ? delivered[g.r] - base[g.r] : g.k === 'reg' ? openedCount() - 1 : (cnt[g.b] || 0); }
   function checkGoals() {
     if (won || modalOpen) return;
     if (LEVELS[lvl - 1].goals.every(g => goalVal(g) >= g.n)) completeLevel();
@@ -586,20 +671,18 @@
     const done = lvl; lvl++;
     for (const k of RES_KEYS) base[k] = delivered[k];
     const newB = PALETTE.filter(t => UNLOCK_AT[t] === lvl && t !== 'erase');
-    const ri = lvl - 1, [rx, ry] = ORDER[ri];
     const bonus = Object.keys(L.bonus).map(k => ico(k) + ' ' + L.bonus[k]).join('  ');
     burst(); save();
     let extra = '';
     if (lvl === 3) extra = '<div class="unlock">🌊 <b>Řeky:</b> Přes vodu teď postavíš most – dopravník na vodě stojí 2 prkna za pole.</div><div class="unlock">🍞 <b>Pozor:</b> chaloupky od teď jedí! Dovez do nich chléb nebo ryby dopravníkem. Hladoví dělníci pracují jen poloviční rychlostí.</div>';
-    if (lvl === 2) extra = '<div class="unlock">🌙 <b>Den a noc:</b> v noci vylézají z lesa <b>vlci</b> a kazí pásy a budovy. Postav <b>Strážní věž</b>. Poškozené věci opravíš tlačítkem 🔧. Tlačítko 🌙 Spát přeskočí noc.</div>';
+    if (lvl === 2) extra = '<div class="unlock">🧭 <b>Průzkum:</b> mapa se neotevírá sama. Postav <b>Průzkumnou chatu</b> do 10 polí od mlhy, dovez do ní materiál pásem a mlha se rozestoupí tím směrem. Další oblasti stojí víc. Objev zatím jednu.</div><div class="unlock">🌙 <b>Den a noc:</b> v noci vylézají z lesa <b>vlci</b> a kazí pásy a budovy. Postav <b>Strážní věž</b>. Poškozené věci opravíš tlačítkem 🔧. Tlačítko 🌙 Spát přeskočí noc.</div>';
     if (lvl === 4) extra = '<div class="unlock">🏗 <b>Velké stavby jsou staveniště:</b> kovárna, dílna a další se nestaví z Radnice. Materiál dovez pásem přímo na staveniště. Kovárna chce i <b>2 rudy a 1 dřevo</b> na provoz.</div><div class="unlock">⬆ Budovy teď jde <b>vylepšit</b> (klepni na ni). Na mapě jsou i <b>vzdálené projekty</b> – Přístav, Horská osada a Lesní hrad. Spojíš je jedním pásem.</div><div class="unlock">🔥 Pozor na <b>požáry</b>, postav Studnu.</div>';
     showModal(
       `<h2>⭐ Level ${done} splněn!</h2><p><b>${L.name}</b> je za tebou.</p>` +
-      `<div class="unlock">🗺️ Nová oblast: <b>${REG_NAMES[ri]}</b></div>` +
       (newB.length ? `<div class="unlock">🔓 Nové: ${newB.map(t => '<b>' + B[t].n + '</b>').join(', ')}</div>` : '') + extra +
       (bonus ? `<div class="unlock">🎁 Odměna: ${bonus}</div>` : '') +
       `<p><b>Level ${lvl}: ${LEVELS[lvl - 1].name}</b></p>`,
-      [{ label: 'Prozkoumat novou oblast', fn: () => flyTo((rx * RS + RS / 2) * T, (ry * RS + RS / 2) * T) }, { label: 'Dál', cls: 'sec' }]);
+      [{ label: 'Dál' }]);
   }
   function burst() {
     const cols = ['#f5bd4f', '#7bd88f', '#ff8a7a', '#7ec8ff', '#f4f1e8', '#c59bff'];
@@ -917,7 +1000,7 @@
   }
   // ---- noc a déšť
   let nc = null, nctx = null;
-  const LIGHT = { house: 2.6, hall: 4.5, tower: 4.2, guard: 3.2, hunter: 3, well: 2.2, castle: 5.5, port: 3.5, village: 4, forge: 3.2, bakery: 2.8, warehouse: 2.4, sawmill: 2.2, monument: 4 };
+  const LIGHT = { house: 2.6, hall: 4.5, tower: 4.2, guard: 3.2, hunter: 3, well: 2.2, castle: 5.5, port: 3.5, village: 4, forge: 3.2, bakery: 2.8, warehouse: 2.4, sawmill: 2.2, monument: 4, scout: 2 };
   function drawNight(time) {
     const dk = darkness(); if (dk < 0.02) return;
     const w = Math.ceil(vw / 2), h = Math.ceil(vh / 2);
@@ -984,7 +1067,7 @@
       ctx.font = `800 ${T * 0.42}px sans-serif`; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,20,34,.85)';
       ctx.strokeText(REG_NAMES[i], x0 + S / 2, y0 + S / 2 + T * 0.35); ctx.fillText(REG_NAMES[i], x0 + S / 2, y0 + S / 2 + T * 0.35);
       ctx.font = `700 ${T * 0.34}px sans-serif`;
-      const label = 'Splň level ' + i;
+      const label = 'Postav tu poblíž Průzkumnou chatu';
       ctx.strokeText(label, x0 + S / 2, y0 + S / 2 + T * 0.85); ctx.fillText(label, x0 + S / 2, y0 + S / 2 + T * 0.85);
       ctx.globalAlpha = 1;
     }
@@ -1112,6 +1195,7 @@
     html += `<span class="pill">${isNight() ? '🌙' : '☀️'} <small>den</small> ${dayNo()}</span>`;
     const nb = blds.filter(b => b.broken).length, nf = blds.filter(b => b.fire > 0).length;
     if (nf) html += `<span class="pill bad">🔥 ${nf}</span>`;
+    $('undoBtn').style.display = undoStack.length ? 'block' : 'none';
     const rb = $('repairBtn'); rb.style.display = nb ? 'block' : 'none'; rb.textContent = '🔧 Opravit vše (' + nb + ')';
     const sl = $('sleepBtn'); sl.style.display = (phase() >= 0.55 && phase() < 0.97 && !sleeping && lvl >= 2) ? 'block' : 'none';
     resEl.innerHTML = html;
@@ -1119,8 +1203,8 @@
     lvlHead.innerHTML = `<span class="star">⭐</span> Level ${lvl}: ${L.name}${won ? ' ✅' : ''}<span class="chev">${levelCard.classList.contains('collapsed') ? '▼' : '▲'}</span>`;
     goalsEl.innerHTML = L.goals.map(g => {
       const v = Math.min(goalVal(g), g.n), pct = Math.round(v / g.n * 100);
-      const em = g.k === 'dl' ? ico(g.r) : g.b === 'bridge' ? '🌉' : `<img class="ic" src="${A.thumbs[g.b]}" alt="">`;
-      const lab = g.k === 'dl' ? 'dodej' : 'postav';
+      const em = g.k === 'reg' ? '🧭' : g.k === 'dl' ? ico(g.r) : g.b === 'bridge' ? '🌉' : `<img class="ic" src="${A.thumbs[g.b]}" alt="">`;
+      const lab = g.k === 'dl' ? 'dodej' : g.k === 'reg' ? 'objev' : 'postav';
       return `<span class="goal${v >= g.n ? ' done' : ''}"><i class="fill" style="width:${pct}%"></i><span>${v >= g.n ? '✓' : ''} ${lab} ${em} ${v}/${g.n}</span></span>`;
     }).join('');
     refreshPalette();
@@ -1151,7 +1235,7 @@
       el.classList.toggle('sel', tool === t);
       el.classList.toggle('hint', hintCard === t && tool !== t);
       el.classList.toggle('poor', !locked && t !== 'erase' && !(B[t] && B[t].site) && !canAfford(t === 'conveyor' ? B.conveyor.cost : B[t].cost));
-      const cs = locked ? '🔒 Lv ' + (UNLOCK_AT[t] - 1) : t === 'erase' ? 'vrátí ½' : t === 'conveyor' ? ico('wood') + '1' + (lvl >= BRIDGE_LVL ? ' · most ' + ico('plank') + '2' : '') : (B[t].site ? '🚚 ' : '') + costTxt(B[t].cost);
+      const cs = locked ? '🔒 Lv ' + (UNLOCK_AT[t] - 1) : t === 'erase' ? 'vrátí ½' : t === 'conveyor' ? ico('wood') + '1' + (lvl >= BRIDGE_LVL ? ' · most ' + ico('plank') + '2' : '') : (B[t].site ? '🚚 ' : '') + costTxt(costOf(t));
       const key = t + cs; if (el.dataset.k !== key) { el.dataset.k = key; el.querySelector('.cs').innerHTML = cs; }
     }
   }
@@ -1167,7 +1251,7 @@
     }
     if (tool) {
       const d = B[tool];
-      setSheet(`<h3><img class="ic" src="${A.thumbs[tool]}" alt=""> ${d.n}<button class="x" data-a="close">✕</button></h3><div>${d.desc}</div><div class="muted">${d.hint || ''}${d.work ? ' · potřebuje 1 pracovníka' : ''}</div><div style="margin-top:6px">${d.site ? '🚚 Staveniště – materiál dovez pásem: ' : ''}${costChips(d.cost, d.site)}</div>`);
+      setSheet(`<h3><img class="ic" src="${A.thumbs[tool]}" alt=""> ${d.n}<button class="x" data-a="close">✕</button></h3><div>${d.desc}</div><div class="muted">${d.hint || ''}${d.work ? ' · potřebuje 1 pracovníka' : ''}</div><div style="margin-top:6px">${d.site ? '🚚 Staveniště – materiál dovez pásem: ' : ''}${costChips(costOf(tool), d.site)}</div>`);
       return;
     }
     sheet.classList.remove('show');
@@ -1278,16 +1362,83 @@
 
   function helpHTML() {
     return '<h2>🌿 Zelené Údolí</h2>' +
-      '<p>Vybuduj z malé osady prosperující údolí. Splňuj <b>levely</b> – každý odemkne <b>novou oblast</b> z mlhy a <b>nové budovy</b>.</p>' +
+      '<p>Vybuduj z malé osady prosperující údolí. Splňuj <b>levely</b> – odemykají <b>nové budovy</b>. Mlhu rozptýlíš <b>Průzkumnou chatou</b> a sám si vybereš, kam se vydáš.</p>' +
       '<p>🚚 Budovy samy zboží nepřenášejí: vyráběj <b>dopravníky</b> (táhni prstem) a vozi suroviny do Radnice nebo do dalších budov. Víc surovin = musíš je dovézt na jedno místo.</p>' +
       '<p>🏠 Dělníci bydlí v chaloupkách do 6 polí od práce. Přes řeky vedou <b>mosty</b>, lesy a skály musíš obejít. Klepnutím na budovu vidíš, co dělá a co jí chybí.</p>';
   }
+  function seedFromText(t) {
+    t = (t || '').trim();
+    if (!t) return 100000 + Math.floor(Math.random() * 900000);
+    if (/^\d+$/.test(t)) return (parseInt(t, 10) % 2000000000) || 1;
+    let h = 7; for (const ch of t) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0;
+    return Math.abs(h) || 1;
+  }
+  function startNew(seed) {
+    SEED = seed; setSalt(); genTerrain();
+    for (const k in PROJ_POS) delete PROJ_POS[k];
+    placeProjects(); newState(); initFog(true); tool = null; sel = null; startCam(); save(); updateHUD(); tutTick(); showSheet();
+  }
+  function ago() { if (!lastSaveAt) return 'právě teď'; const s2 = Math.round((Date.now() - lastSaveAt) / 1000); return s2 < 5 ? 'právě teď' : s2 < 90 ? 'před ' + s2 + ' s' : 'před ' + Math.round(s2 / 60) + ' min'; }
   function showMenu() {
-    showModal(helpHTML(), [
+    save();
+    showModal(helpHTML() + `<div class="unlock">🗺️ Mapa: <b>${SEED ? 'náhodná (seed ' + SEED + ')' : 'Údolí (pevná)'}</b><br>💾 Hra se ukládá sama v tomto prohlížeči (naposledy ${ago()}). Pro zálohu nebo přenos na jiný telefon použij <b>Export</b>.</div>`, [
       { label: 'Hrát' },
-      { label: 'Nová hra', cls: 'danger', fn: () => setTimeout(() => showModal('<h2>Začít znovu?</h2><p>Celý postup se smaže.</p>', [
-        { label: 'Zpět', cls: 'sec' }, { label: 'Smazat vše', cls: 'danger', fn: () => { newState(); initFog(true); tool = null; sel = null; startCam(); save(); updateHUD(); tutTick(); showSheet(); } }]), 50) },
+      { label: '💾 Uložit', cls: 'sec', fn: () => { save(); toast('💾 Uloženo', 1400); } },
+      { label: '📊 Statistiky', cls: 'sec', fn: () => setTimeout(showStats, 50) },
+      { label: '📤 Export', cls: 'sec', fn: () => setTimeout(showExport, 50) },
+      { label: '📥 Import', cls: 'sec', fn: () => setTimeout(showImport, 50) },
+      { label: '🆕 Nová hra', cls: 'danger', fn: () => setTimeout(showNewGame, 50) },
     ]);
+  }
+  function showExport() {
+    const code = exportCode();
+    showModal('<h2>📤 Export postupu</h2><p>Zkopíruj kód nebo stáhni soubor. Na jiném zařízení ho vložíš přes Import.</p><textarea readonly id="expTa">' + code + '</textarea>', [
+      { label: '📋 Zkopírovat', fn: () => { try { navigator.clipboard.writeText(code).then(() => toast('📋 Zkopírováno', 1400), () => toast('Zkopíruj ručně z okna', 2000)); } catch (e) { toast('Zkopíruj ručně z okna', 2000); } } },
+      { label: '⬇ Soubor', cls: 'sec', fn: () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/plain' })); a.download = 'zelene-udoli-postup.txt'; document.body.appendChild(a); a.click(); a.remove(); } },
+      { label: 'Zavřít', cls: 'sec' },
+    ]);
+  }
+  function showImport() {
+    showModal('<h2>📥 Import postupu</h2><p>Vlož kód z exportu nebo vyber soubor. <b>Přepíše současný postup.</b></p><textarea id="impTa" placeholder="Sem vlož kód…"></textarea><input type="file" id="impFile" accept=".txt,.json,text/plain">', [
+      { label: 'Načíst', fn: () => {
+        const done = txt => { if (importCode(txt)) { toast('✅ Načteno', 1200); setTimeout(() => location.reload(), 350); } else toast('❌ Neplatný kód', 2400); };
+        const f = $('impFile').files[0];
+        if (f) { const rd = new FileReader(); rd.onload = () => done(String(rd.result)); rd.readAsText(f); } else done($('impTa').value);
+      } },
+      { label: 'Zpět', cls: 'sec' },
+    ]);
+  }
+  function showNewGame() {
+    showModal('<h2>🆕 Nová hra</h2><p>Současný postup se smaže (nejdřív si ho můžeš exportovat).</p><p>Náhodná mapa: seed může být číslo nebo slovo, stejný seed dá stejnou mapu. Nech prázdné pro náhodný.</p><input id="seedIn" class="seedin" placeholder="Seed (nepovinné)">', [
+      { label: '🎲 Náhodná mapa', fn: () => startNew(seedFromText($('seedIn').value)) },
+      { label: '🏞 Údolí (pevná)', cls: 'sec', fn: () => startNew(0) },
+      { label: 'Zpět', cls: 'sec' },
+    ]);
+  }
+  function showStats() {
+    const cur = [clock, stat.prod, stat.cons], old = snaps.length ? snaps[0] : [clock - 1, {}, {}], dtm = Math.max(5, cur[0] - old[0]) / 60;
+    let rows = '';
+    for (const k of RES_KEYS) {
+      const p = stat.prod[k] || 0, c = stat.cons[k] || 0, dl = delivered[k] || 0;
+      if (!p && !c && !dl && !stock[k]) continue;
+      const pr = ((p - (old[1][k] || 0)) / dtm).toFixed(0), cr = ((c - (old[2][k] || 0)) / dtm).toFixed(0);
+      rows += `<div class="srow2">${ico(k)} <b>${RES[k].n}</b><span>vyrobeno ${p} (${pr}/min) · spotřeba ${cr}/min · ve skladu ${stock[k]}</span></div>`;
+    }
+    const probs = [];
+    for (const b of blds) {
+      const nm = B[b.type].n;
+      if (!regionOpen(b.x, b.y)) continue;
+      if (b.fire > 0) probs.push([b, '🔥 hoří']);
+      else if (b.broken) probs.push([b, '🔧 poškozeno']);
+      else if (b.site) probs.push([b, '🏗 čeká na: ' + Object.keys(b.site.need).filter(k => (b.site.have[k] || 0) < b.site.need[k]).map(k => RES[k].n + ' ' + (b.site.need[k] - (b.site.have[k] || 0))).join(', ')]);
+      else if (b.state === 'nowork') probs.push([b, '👷 bez pracovníka']);
+      else if (b.state === 'blocked') probs.push([b, '📦 plný výstup – není kam']);
+      else if (b.state === 'input') probs.push([b, '⏳ čeká na ' + (b.need ? RES[b.need].n : 'vstup')]);
+      else if (b.type === 'house' && b.hungry) probs.push([b, '😟 hladoví']);
+      void nm;
+    }
+    const pl = probs.slice(0, 14).map(([b, t]) => `<div class="srow2 fly" data-fly="${b.x},${b.y}"><b>${B[b.type].n}</b><span>${t} · klepni pro zobrazení</span></div>`).join('');
+    showModal('<h2>📊 Statistiky</h2><div class="slist">' + (rows || '<p>Zatím nic nevyrábíš.</p>') + '</div><h3>Kde se zasekává</h3><div class="slist">' + (pl || '<p>✅ Všechno běží.</p>') + (probs.length > 14 ? '<p>…a dalších ' + (probs.length - 14) + '</p>' : '') + '</div>', [{ label: 'Zavřít' }]);
   }
 
   // ---------- Vstup ----------
@@ -1334,7 +1485,7 @@
     if (tool === 'conveyor' && b && b.type === 'conveyor') { b.dir = (b.dir + 1) & 3; rot = b.dir; return; }
     if (b && tool !== 'erase') { tool = null; sel = b; refreshPalette(); showSheet(); return; }
     if (tool && tool !== 'erase' && tool !== 'conveyor') { if (place(tool, tx, ty)) { updateHUD(); showSheet(); } return; }
-    if (!regionOpen(tx, ty)) { toast('🔒 ' + REG_NAMES[regIdxAt(tx, ty)] + ' – splň level ' + regIdxAt(tx, ty)); return; }
+    if (!regionOpen(tx, ty)) { toast('🔒 ' + REG_NAMES[regIdxAt(tx, ty)] + ' – postav Průzkumnou chatu do 10 polí'); return; }
     sel = null;
   }
   function initInput() {
@@ -1343,7 +1494,7 @@
       ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (ptrs.size === 1) {
         downInfo = { t: performance.now() }; moved = 0;
-        if (tool === 'conveyor' || tool === 'erase') { painting = true; lastTile = null; const [tx, ty] = toTile(e.clientX, e.clientY); paintStep(tx, ty); }
+        if (tool === 'conveyor' || tool === 'erase') { painting = true; lastTile = null; curOps = []; const [tx, ty] = toTile(e.clientX, e.clientY); paintStep(tx, ty); }
       } else if (ptrs.size === 2) { painting = false; pinch = pinchState(); downInfo = null; }
     });
     canvas.addEventListener('pointermove', e => {
@@ -1367,7 +1518,7 @@
       if (ptrs.size < 2) pinch = null;
       if (last) {
         if (downInfo && moved < 10 && performance.now() - downInfo.t < 700 && e.type === 'pointerup') onTap(e.clientX, e.clientY);
-        if (painting) { updateHUD(); save(); }
+        if (painting) { if (curOps) pushUndo(curOps); curOps = null; updateHUD(); save(); }
         painting = false; lastTile = null; downInfo = null;
       }
     };
@@ -1377,31 +1528,45 @@
     $('speedBtn').onclick = () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $('speedBtn').textContent = '⏩ ' + speed + '×'; };
     $('menuBtn').onclick = showMenu;
     $('repairBtn').onclick = repairAll;
+    $('undoBtn').onclick = undo;
     $('sleepBtn').onclick = () => { if (phase() < 0.55) { toast('Spát se dá až k večeru', 1500); return; } sleeping = true; sel = null; toast('💤 Spíš do rána…', 1800); };
     window.addEventListener('resize', () => { resize(); clampCam(); });
   }
 
   // ---------- Ukládání ----------
+  function saveData() {
+    return {
+      v: 3, seed: SEED, opened, lvl, stock, delivered, base, won, tut, clock, t: Date.now(),
+      b: blds.filter(b => b.type !== 'hall' && !B[b.type].proj).map(b => [b.type, b.x, b.y, b.dir, b.bridge ? 1 : 0, b.up, b.site ? b.site.have : null, b.site && b.site.up ? 1 : 0, b.site ? b.site.need : null]),
+      pj: blds.filter(b => B[b.type].proj).map(b => [b.type, b.site ? b.site.have : null]),
+    };
+  }
   function save() {
+    if (noSave) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData())); lastSaveAt = Date.now(); } catch (e) { /* nic */ }
+  }
+  const exportCode = () => btoa(unescape(encodeURIComponent(JSON.stringify(saveData()))));
+  function importCode(str) {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify({
-        lvl, stock, delivered, base, won, tut, clock, t: Date.now(),
-        b: blds.filter(b => b.type !== 'hall' && !B[b.type].proj).map(b => [b.type, b.x, b.y, b.dir, b.bridge ? 1 : 0, b.up, b.site ? b.site.have : null, b.site && b.site.up ? 1 : 0]),
-        pj: blds.filter(b => B[b.type].proj).map(b => [b.type, b.site ? b.site.have : null]),
-      }));
-    } catch (e) { /* nic */ }
+      str = (str || '').trim(); let j;
+      try { j = JSON.parse(str); } catch (e) { j = JSON.parse(decodeURIComponent(escape(atob(str)))); }
+      if (typeof j.lvl !== 'number' || !Array.isArray(j.b)) return false;
+      noSave = true; localStorage.setItem(SAVE_KEY, JSON.stringify(j)); return true;
+    } catch (e) { return false; }
   }
   function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
       const d = JSON.parse(raw);
       newState();
+      opened = Array.isArray(d.opened) && d.opened.length === 9 ? d.opened.map(Boolean) : opened.map((_, i) => i < clamp(d.lvl | 0, 1, 9));
+      opened[0] = true;
       lvl = clamp(d.lvl | 0, 1, 9); won = !!d.won; tut = d.tut || { on: false, step: 0 }; clock = d.clock || 20;
       for (const k of RES_KEYS) { stock[k] = (d.stock && d.stock[k]) || 0; delivered[k] = (d.delivered && d.delivered[k]) || 0; base[k] = (d.base && d.base[k]) || 0; }
-      for (const [type, x, y, dir, br, up, have, sup] of d.b || []) {
+      for (const [type, x, y, dir, br, up, have, sup, need] of d.b || []) {
         if (B[type] && !B[type].proj && inb(x, y) && !cell(x, y)) {
           const b = makeB(type, x, y, dir); b.bridge = !!br; b.up = up || 1;
-          if (have) b.site = sup ? { need: Object.assign({}, UPG[b.up + 1] || { plank: 6 }), have, up: true } : { need: Object.assign({}, B[type].cost), have };
+          if (have) b.site = sup ? { need: Object.assign({}, UPG[b.up + 1] || { plank: 6 }), have, up: true } : { need: Object.assign({}, need || B[type].cost), have };
           addB(b);
         }
       }
@@ -1412,7 +1577,7 @@
       return true;
     } catch (e) { return false; }
   }
-  function initFog(instant) { if (instant) for (let i = 0; i < 9; i++) fog[i] = i < unlockedRegions() ? 0 : 1; }
+  function initFog(instant) { if (instant) for (let i = 0; i < 9; i++) fog[i] = opened[i] ? 0 : 1; }
   function startCam() { cam.z = clamp(vw / (8.5 * T), 0.6, 1.5); centerOn((HALL_X + 1) * T, (HALL_Y + 1.2) * T); }
 
   // ---------- Smyčka ----------
@@ -1422,7 +1587,7 @@
     const steps = sleeping ? 10 : speed;
     for (let s = 0; s < steps; s++) update(dt);
     if (sleeping && phase() < 0.5) { sleeping = false; toast('☀️ Dobré ráno!', 1800); }
-    for (let i = 0; i < 9; i++) { const target = i < unlockedRegions() ? 0 : 1; fog[i] += clamp(target - fog[i], -dt * 0.7, dt * 0.7); }
+    for (let i = 0; i < 9; i++) { const target = opened[i] ? 0 : 1; fog[i] += clamp(target - fog[i], -dt * 0.7, dt * 0.7); }
     if (fly) {
       cam.x += (fly.x - cam.x) * Math.min(1, dt * 3); cam.y += (fly.y - cam.y) * Math.min(1, dt * 3);
       if (Math.abs(fly.x - cam.x) + Math.abs(fly.y - cam.y) < 2) fly = null;
@@ -1441,7 +1606,10 @@
   function init() {
     canvas = $('game'); ctx = canvas.getContext('2d');
     A.build();
-    genTerrain(); placeProjects();
+    try { const raw0 = localStorage.getItem(SAVE_KEY); if (raw0) SEED = JSON.parse(raw0).seed | 0; } catch (e) { /* nic */ }
+    setSalt(); genTerrain(); placeProjects();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* nic */ }
+    $('modalBox').addEventListener('click', e => { const r = e.target.closest('[data-fly]'); if (!r) return; const [fx, fy] = r.dataset.fly.split(',').map(Number); $('modal').classList.remove('show'); modalOpen = false; flyTo((fx + 0.5) * T, (fy + 0.5) * T); });
     resize();
     buildPalette();
     initInput();
@@ -1464,7 +1632,7 @@
   window.__zu = {
     get state() { return { lvl, stock, delivered, base, won, cnt, blds: blds.length, modalOpen, employed, needWorkers, capStock, tut }; },
     place, update, checkGoals, validTile, bfsPath, regionOpen, B, cam, terrain, cell, grid: () => grid, blds: () => blds, tutTick,
-    give: (k, n) => { stock[k] += n; }, setLvl: n => { lvl = n; recalc(); }, setTool: t => { tool = t; refreshPalette(); showSheet(); }, select: b => { sel = b; tool = null; refreshPalette(); showSheet(); },
+    give: (k, n) => { stock[k] += n; }, setLvl: n => { lvl = n; for (let i = 0; i < Math.min(9, n); i++) opened[i] = true; recalc(); }, opened: () => opened, openRegion, scoutCost, scoutTargets, undo, startNew, exportCode, importCode, stat: () => stat, setTool: t => { tool = t; refreshPalette(); showSheet(); }, select: b => { sel = b; tool = null; refreshPalette(); showSheet(); },
     setSpeed: n => { speed = n; }, recalc, updateHUD, skipTut: () => { tut.on = false; showSheet(); },
     get tgt() { return tutTgt; }, get tpath() { return tutPathTiles; },
     wolves, spawnWolf, breakB, repairAll, startUpgrade, siteCheck, igniteRandom, floodHit, upgradeCost, darkness, phase, setClock: t => { clock = t; }, getClock: () => clock, PROJ_POS, isNight,

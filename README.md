@@ -7,7 +7,7 @@
 - **Level 1 je tutoriál**, který tě provede krok za krokem (jde přeskočit tlačítkem).
 - Vyber budovu dole a klepni na zvýrazněné pole. Mapu posouváš prstem, dvěma prsty přibližuješ.
 - **Klepni na budovu** – vyskočí okénko: co dělá, co potřebuje (vstupy), jak postupuje výroba a proč případně stojí.
-- 9 levelů. Každý odemkne **novou oblast** z mlhy a **nové budovy**.
+- 9 levelů odemykají **nové budovy**. Mlhu rozptýlíš **Průzkumnou chatou** (postavíš ji do 10 polí od mlhy a materiál dovezeš pásem), takže si sám vybíráš, kam se vydáš.
 
 ## Logistika
 
@@ -23,6 +23,12 @@
 - 🌙 **Den a noc:** v noci vylézají **vlci** a kazí pásy a budovy (oprava 🔧). Brání **Strážní věž**, **Hlídka** a **Myslivec** (loví i zvěřinu). Noc přeskočí tlačítko 🌙 Spát.
 - 🌧️🔥 **Události:** povodeň poškodí pásy a stavby na březích, požár se šíří a hasí ho studna nebo klepání.
 - Levely se plní **dodáním** surovin do Radnice/skladu a stavbami. Cíl: **Velký chrám**.
+
+## Ukládání a mapa
+
+- Hra se ukládá automaticky v prohlížeči. V menu (☰) je **💾 Uložit**, **📤 Export** (kód nebo soubor) a **📥 Import** pro zálohu a přenos na jiné zařízení.
+- **Nová hra:** pevná mapa „Údolí" nebo **náhodná mapa ze seedu** (číslo nebo slovo; stejný seed = stejná mapa).
+- **↩ Zpět** vrátí poslední stavbu nebo bourání, **📊 Statistiky** ukážou výrobu a kde se zboží zasekává.
 
 ## Spuštění
 

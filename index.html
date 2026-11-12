@@ -127,6 +127,16 @@
   #act button { background: var(--glass2); color: var(--text); border: 1px solid #ffffff2a; border-radius: 12px; padding: 7px 11px; font-size: 14px; font-weight: 800; box-shadow: 0 2px 8px #0006; font-family: inherit; }
   #repairBtn { border-color: var(--bad) !important; color: #ffd0c8 !important; animation: hintp 1s infinite; }
   #pop button.act.ok { background: #4fa86a; }
+  #modalBox .btns { flex-wrap: wrap; }
+  #modalBox .btns button { flex: 1 1 42%; }
+  #modalBox textarea { width: 100%; height: 110px; margin: 8px 0; border-radius: 10px; border: 1px solid #ffffff30; background: #0b1722; color: var(--text); padding: 8px; font-size: 12px; font-family: monospace; resize: none; user-select: text; -webkit-user-select: text; }
+  #modalBox input.seedin { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ffffff30; background: #0b1722; color: var(--text); font-size: 15px; font-family: inherit; user-select: text; -webkit-user-select: text; }
+  #modalBox input[type=file] { color: var(--text); font-size: 13px; }
+  #modalBox h3 { margin: 12px 0 4px; font-size: 16px; }
+  #modalBox .srow2 { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; background: #ffffff0f; border-radius: 10px; padding: 6px 9px; margin: 4px 0; font-size: 13px; }
+  #modalBox .srow2 span { opacity: .8; flex: 1 1 100%; }
+  #modalBox .srow2.fly { cursor: pointer; border: 1px solid #ffffff22; }
+  #modalBox .slist { max-height: 34vh; overflow: auto; }
   #modalBox .ic { width: 20px; height: 20px; }
 </style>
 </head>
@@ -137,7 +147,7 @@
   <div id="levelCard"><div id="lvlHead"></div><div id="goals"></div></div>
 </div>
 <div id="btns"><button id="speedBtn">⏩ 1×</button><button id="menuBtn">☰</button></div>
-<div id="act"><button id="repairBtn" style="display:none"></button><button id="sleepBtn" style="display:none">🌙 Spát</button></div>
+<div id="act"><button id="repairBtn" style="display:none"></button><button id="undoBtn" style="display:none">↩ Zpět</button><button id="sleepBtn" style="display:none">🌙 Spát</button></div>
 <div id="sheet"></div>
 <div id="palette"></div>
 <div id="pop"></div>
