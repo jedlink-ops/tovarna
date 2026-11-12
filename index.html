@@ -90,6 +90,40 @@
   #modalBox button.sec { background: #ffffff20; color: var(--text); }
   #modalBox button.danger { background: #d8584a; color: #fff; }
   #modalBox .unlock { background: #ffffff12; border-radius: 12px; padding: 8px 10px; margin: 8px 0; }
+
+  .ic { width: 18px; height: 18px; vertical-align: -4px; display: inline-block; }
+  .pill .ic { width: 20px; height: 20px; }
+  .goal .ic { width: 18px; height: 18px; }
+  .card .th { width: 46px; height: 46px; display: block; margin: 0 auto; object-fit: contain; }
+  .card .cs .ic { width: 13px; height: 13px; vertical-align: -2px; }
+  .card.hint { animation: hintp 1s infinite; border-color: #ffe27a; }
+  @keyframes hintp { 0%,100% { transform: translateY(0); box-shadow: 0 0 0 0 #ffe27a88; } 50% { transform: translateY(-6px); box-shadow: 0 0 14px 4px #ffe27acc; } }
+  #sheet .tut { line-height: 1.45; }
+  #sheet .tstep { font-size: 11px; font-weight: 800; opacity: .7; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+  #sheet button.act.ok { background: #4fa86a; }
+  #sheet button.act.sec { background: #ffffff22; }
+  #sheet h3 .ic { width: 26px; height: 26px; }
+  #pop { position: fixed; z-index: 10; width: 270px; max-width: calc(100vw - 16px); background: var(--glass2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #ffffff2a; border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 20px #0008; display: none; font-size: 13px; line-height: 1.4; }
+  #pop.show { display: block; }
+  #pop .ph { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  #pop .ph .th { width: 34px; height: 34px; object-fit: contain; }
+  #pop .ph .x { margin-left: auto; background: #ffffff18; border: 0; color: var(--text); border-radius: 9px; width: 28px; height: 28px; }
+  #pop .pd { opacity: .85; margin: 3px 0 6px; }
+  #pop .pflow { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 4px 0; }
+  #pop .fi { background: #ffffff16; border-radius: 9px; padding: 2px 7px; font-weight: 700; display: inline-flex; gap: 4px; align-items: center; }
+  #pop .arrow { opacity: .7; }
+  #pop .muted { opacity: .7; font-size: 12px; }
+  #pop .pb { height: 10px; background: #00000066; border-radius: 6px; overflow: hidden; margin: 6px 0; }
+  #pop .pb i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f5bd4f, #ffe27a); border-radius: 6px; transition: width .2s linear; }
+  #pop .pstat { font-weight: 800; padding: 4px 8px; border-radius: 9px; background: #ffffff12; margin-top: 4px; }
+  #pop .pstat.ok { color: var(--ok); } #pop .pstat.warn { color: #ffd166; } #pop .pstat.bad { color: var(--bad); }
+  #pop .pbtns { display: flex; gap: 6px; margin-top: 8px; }
+  #pop button.act { flex: 1; background: #d8584a; color: #fff; border: 0; border-radius: 10px; padding: 6px; font-weight: 800; font-size: 13px; font-family: inherit; }
+  #pop button.act.sec { background: #ffffff24; }
+  #pop .tail { position: absolute; bottom: -8px; width: 16px; height: 16px; background: var(--glass2); transform: translateX(-50%) rotate(45deg); border-right: 1px solid #ffffff2a; border-bottom: 1px solid #ffffff2a; }
+  #pop.below .tail { bottom: auto; top: -8px; transform: translateX(-50%) rotate(225deg); }
+  #modalBox .ic { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -101,8 +135,10 @@
 <div id="btns"><button id="speedBtn">⏩ 1×</button><button id="menuBtn">☰</button></div>
 <div id="sheet"></div>
 <div id="palette"></div>
+<div id="pop"></div>
 <div id="toast"></div>
 <div id="modal"><div id="modalBox"></div></div>
+<script src="art.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

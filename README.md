@@ -1,30 +1,28 @@
 # 🌿 Zelené Údolí
 
-Útulná budovatelská hra pro mobil (běží v prohlížeči, žádná instalace ani build). Z malé osady vybuduj prosperující údolí.
+Útulná budovatelská hra pro mobil (běží v prohlížeči, bez instalace a buildu). Z malé osady vybuduj prosperující údolí – a nauč se vozit zboží dopravníky.
 
 ## Jak se hraje
 
-- Vyber budovu dole a **klepni na zvýrazněné pole**. Mapu posouváš prstem, dvěma prsty přibližuješ.
-- Klepnutím na postavenou budovu uvidíš její stav a můžeš ji zbourat (vrátí polovinu ceny).
-- Nahoře vidíš **level a jeho cíle**. Každý splněný level:
-  - odemkne **novou oblast mapy** (zatím schovanou v mlze),
-  - odemkne **nové budovy**,
-  - dá bonusové suroviny.
-- 9 levelů, cíl je postavit **Velký chrám**.
+- **Level 1 je tutoriál**, který tě provede krok za krokem (jde přeskočit tlačítkem).
+- Vyber budovu dole a klepni na zvýrazněné pole. Mapu posouváš prstem, dvěma prsty přibližuješ.
+- **Klepni na budovu** – vyskočí okénko: co dělá, co potřebuje (vstupy), jak postupuje výroba a proč případně stojí.
+- 9 levelů. Každý odemkne **novou oblast** z mlhy a **nové budovy**.
 
-## Mechaniky
+## Logistika
 
-- 🏠 **Chaloupky** přivádějí obyvatele, ti pracují v budovách (každá výrobní budova potřebuje 1 pracovníka).
-- 🍞 Od levelu 3 obyvatelé jedí chléb a ryby. Při hladu hra zpomalí práci a lidé přestanou přibývat.
-- 💧 **Studna** zrychlí všechny sousední budovy o 50 %. 🌾 Pole u vody rostou rychleji.
-- 📦 **Sklady** zvětšují místo pro každou surovinu. Když je sklad plný, výroba stojí.
-- ⏩ Tlačítko vpravo nahoře zrychlí čas (1×, 2×, 4×).
-- Postup se ukládá automaticky a údolí pracuje i po tvém odchodu (až 15 minut).
+- Budovy zboží samy nepřenášejí. Stavěj **dopravníky** (táhni prstem; pás se kreslí ve směru tažení) a vozi suroviny do Radnice, skladů i do dalších budov.
+- Výrobní řetězce potřebují víc surovin z různých míst: pila (2× dřevo), pekárna (2× pšenice), kovárna (2× ruda + dřevo), dílna (železo + prkno), klenotník (zlato + železo).
+- **Rozdělovač** posílá zboží střídavě na všechny strany.
+- Přes **řeky** vedou mosty (od levelu 3, stojí prkna). Lesy a skály musíš obejít. Každý další level má těžší terén.
+- 🏠 **Chaloupky**: dělníci bydlí do 6 polí od práce (2 na chaloupku). Klepnutím na chaloupku uvidíš dosah.
+- 🍞 Od levelu 3 chaloupky jedí chléb a ryby (dovezené dopravníkem). Hladoví pracují poloviční rychlostí.
+- Levely se plní **dodáním** surovin do Radnice/skladu a stavbami. Cíl: **Velký chrám**.
 
-## Spuštění lokálně
+## Spuštění
 
-Otevři `index.html` v prohlížeči, nebo `python3 -m http.server` a jdi na `http://localhost:8000`.
+Otevři `index.html`, nebo `python3 -m http.server` → `http://localhost:8000`. Postup se ukládá do prohlížeče.
 
 ## GitHub Pages
 
-V repozitáři **Settings → Pages**, *Deploy from a branch*, větev `main`, složka `/ (root)`. Hra pak poběží na `https://jedlink-ops.github.io/tovarna/`.
+Settings → Pages → *Deploy from a branch* → `main` / `(root)`. Hra pak běží na `https://jedlink-ops.github.io/tovarna/`.
