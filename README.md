@@ -44,3 +44,6 @@ Settings → Pages → *Deploy from a branch* → `main` / `(root)`. Hra pak bě
 - Na staveništích pracují stavitelé, myslivec a hlídka střílejí/odhánějí vlky.
 - Postavičky mívají bubliny s hláškami (reagují na noc, déšť, hlad, vlky, požár).
 - Klepnutím na postavičku se otevře okénko se jménem, povoláním a aktuální činností.
+
+## Hloubka (2.5D)
+Skály, rudy a zlato mají boční stěny jako vyvýšené bloky, budovy, stromy a kameny vrhají stíny podle denní doby (ráno vlevo, večer vpravo, v noci mizí), koruny stromů se houpají ve větru a obraz má jemný vzdušný opar nahoře a teplé světlo dole.

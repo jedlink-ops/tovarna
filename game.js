@@ -1108,6 +1108,24 @@
   const isT = (...ts) => (x, y) => ts.includes(tAt(x, y));
   const pForest = isT(FOREST), pRock = isT(ROCK), pOre = isT(ORE), pGold = isT(GOLD), pSand = isT(SAND, WATER), pWater = isT(WATER);
 
+  // slunce: směr a délka stínu podle denní doby
+  let sunX = 0.6, sunL = 1, sunA = 0.25;
+  function updateSun() {
+    const p = clamp(phase() / 0.64, 0, 1), k = p * 2 - 1;   // -1 ráno … +1 večer
+    sunX = k * 0.9; sunL = 0.55 + Math.abs(k) * 0.9; sunA = 0.26 * (1 - clamp(darkness() * 1.4, 0, 1));
+  }
+  function shadowBlob(cx, by, rw, rh) {   // měkký stín pod stromem/kamenem
+    if (sunA < 0.01) return;
+    ctx.fillStyle = `rgba(22,48,26,${sunA})`;
+    ctx.beginPath(); ctx.ellipse(cx + sunX * rh * 0.9, by - 1, rw * 0.8 + sunL * rw * 0.25, rh * 0.35, 0, 0, 6.3); ctx.fill();
+  }
+  function shadowBox(x, by, w, h) {   // protažený stín budovy
+    if (sunA < 0.01) return;
+    const dx = sunX * h * 0.55 * sunL;
+    ctx.fillStyle = `rgba(22,48,26,${sunA})`;
+    ctx.beginPath(); ctx.moveTo(x + 3, by - 3); ctx.lineTo(x + w - 3, by - 3); ctx.lineTo(x + w - 3 + dx, by - 3 - h * 0.28); ctx.lineTo(x + 8 + dx, by - 3 - h * 0.3); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + w / 2, by - 2, w * 0.52, 7, 0, 0, 6.3); ctx.fill();
+  }
   function drawGround(x0, y0, x1, y1, time) {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { ctx.fillStyle = GR[gIdx[y * W + x]]; ctx.fillRect(x * T, y * T, T + 1, T + 1); }
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -1121,6 +1139,23 @@
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (terrain[y * W + x] === WATER) blobTile(x, y, pWater, 6, '#d9c590');
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (terrain[y * W + x] === WATER) blobTile(x, y, pWater, 3.5, '#e4f6ff');
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (terrain[y * W + x] === WATER) blobTile(x, y, pWater, 0.5, ((x + y) & 1) ? '#3a90d0' : '#3d94d4');
+    // boční stěny skalnatých bloků (vypadají vyvýšené)
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const t = terrain[y * W + x];
+      if (t !== ROCK && t !== ORE && t !== GOLD) continue;
+      if (tAt(x, y + 1) === t) continue;
+      const l = tAt(x - 1, y) === t, r = tAt(x + 1, y) === t;
+      const x2 = x * T + (l ? -2 : 3), w2 = T + (l ? 2 : -3) + (r ? 2 : -3);
+      ctx.fillStyle = t === ROCK ? '#7d765f' : t === ORE ? '#6f5a42' : '#8a7740';
+      rrect(x2, y * T + T - 14, w2, 20, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.12)'; rrect(x2, y * T + T - 3, w2, 9, 6); ctx.fill();
+    }
+    // stín břehu na hladině
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (terrain[y * W + x] !== WATER || tAt(x, y - 1) === WATER || tAt(x, y - 1) === -1) continue;
+      const g = ctx.createLinearGradient(0, y * T, 0, y * T + 16); g.addColorStop(0, 'rgba(8,40,90,.42)'); g.addColorStop(1, 'rgba(8,40,90,0)');
+      ctx.fillStyle = g; ctx.fillRect(x * T, y * T, T + 1, 16);
+    }
     // hloubka a třpyt vody
     ctx.fillStyle = 'rgba(20,80,150,.22)';
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -1238,11 +1273,14 @@
         A.blit(ctx, A.tree[(hash(x, y) * 3 | 0) * 2], px + 5, py + T - 2, 0.62);
         A.blit(ctx, A.tree[(hash(y, x) * 3 | 0) * 2 + 1], px + T - 5, py + T - 1, 0.62);
       } else {
+        shadowBlob(px + T * 0.5, py + T * 0.98, 22, 11); shadowBlob(px + T * 0.28, py + T * 0.62, 16, 9); shadowBlob(px + T * 0.74, py + T * 0.58, 16, 9);
         const P = [[0.26, 0.58], [0.74, 0.52], [0.5, 0.96]];
         for (let i = 0; i < 3; i++) {
           const h = hash(x * 3 + i, y * 7 + i), v = (h * 3) | 0, k = hash(x + i, y * 2 + i) > 0.45 ? 0 : 1;
           const s = 0.72 + h * 0.18;
-          A.blit(ctx, A.tree[v * 2 + k], px + (P[i][0] + (h - 0.5) * 0.12) * T, py + P[i][1] * T + T * 0.12, s);
+          const bx = px + (P[i][0] + (h - 0.5) * 0.12) * T, bY = py + P[i][1] * T + T * 0.12, sw = Math.sin(time * 1.15 + h * 11 + x * 0.3) * 0.028;
+          ctx.save(); ctx.translate(bx, bY); ctx.transform(1, 0, sw, 1, 0, 0); ctx.translate(-bx, -bY);
+          A.blit(ctx, A.tree[v * 2 + k], bx, bY, s); ctx.restore();
         }
       }
     } else if (t === ROCK || t === ORE || t === GOLD) {
@@ -1251,6 +1289,7 @@
       const P = [[0.3, 0.7], [0.72, 0.6]];
       for (let i = 0; i < 2; i++) {
         const h = hash(x * 5 + i, y * 3 + 1), v = (h * 3) | 0;
+        shadowBlob(px + (P[i][0] + (h - 0.5) * 0.18) * T, py + (P[i][1] + (hash(y, x + i) - 0.5) * 0.12) * T, 14, 8);
         A.blit(ctx, A.rock[kind][v], px + (P[i][0] + (h - 0.5) * 0.18) * T, py + (P[i][1] + (hash(y, x + i) - 0.5) * 0.12) * T, 0.78 + h * 0.2);
       }
       if (kind === 'gold') {
@@ -1282,6 +1321,7 @@
     const sp = (b.up > 1 && A.bldV[b.type]) ? A.bldV[b.type][b.up] : A.bld[b.type];
     if (!sp) return;
     if (b.site) { drawSite(b, cx, by, sp); return; }
+    shadowBox(b.x * T, by, s * T, s * T);
     A.blit(ctx, sp, cx, by);
     const prog = b.working ? b.t / d.rec.t : 0;
     A.overlay(ctx, b.type, cx, by, { time, working: b.working && !b.broken, progress: prog });
@@ -1467,6 +1507,7 @@
     const x0 = Math.max(0, Math.floor(cam.x / T)), y0 = Math.max(0, Math.floor(cam.y / T));
     const x1 = Math.min(W - 1, Math.ceil((cam.x + vw / cam.z) / T)), y1 = Math.min(H - 1, Math.ceil((cam.y + vh / cam.z) / T));
     ctx.fillStyle = '#e9d8a2'; rrect(-14, -14, W * T + 28, H * T + 28, 40); ctx.fill();
+    updateSun();
     drawGround(x0, y0, x1, y1, time);
     drawBelts(x0, y0, x1, y1, time);
     drawOverlays(x0, y0, x1, y1, time);
@@ -1498,6 +1539,10 @@
     drawFog(time);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawNight(time); drawRain(time);
+    { const hz = ctx.createLinearGradient(0, 0, 0, vh * 0.34), a = 0.30 * (1 - darkness() * 0.8);
+      hz.addColorStop(0, `rgba(205,228,248,${a})`); hz.addColorStop(1, 'rgba(205,228,248,0)'); ctx.fillStyle = hz; ctx.fillRect(0, 0, vw, vh * 0.34);
+      const wm = ctx.createLinearGradient(0, vh * 0.7, 0, vh), a2 = 0.10 * (1 - darkness());
+      wm.addColorStop(0, 'rgba(255,236,190,0)'); wm.addColorStop(1, `rgba(255,236,190,${a2})`); ctx.fillStyle = wm; ctx.fillRect(0, vh * 0.7, vw, vh * 0.3); }
     ctx.fillStyle = vignette; ctx.fillRect(0, 0, vw, vh);
     for (const c of confetti) { ctx.globalAlpha = clamp(c.life - c.t, 0, 1); ctx.fillStyle = c.c; ctx.fillRect(c.x, c.y, c.s, c.s * 0.6); }
     ctx.globalAlpha = 1;
