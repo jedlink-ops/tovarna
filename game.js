@@ -118,8 +118,8 @@
     terrain.fill(G);
     let rs = (SEED + ATT * 7919) >>> 0;
     const rnd = () => { rs = (rs + 0x6D2B79F5) | 0; let t = Math.imul(rs ^ (rs >>> 15), 1 | rs); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-    const jit = (x, y) => (SEED ? (rnd() - 0.5) * 2 * ((x >= 16 && x < 32 && y >= 16 && y < 32) ? 1.3 : 3.2) : 0);
-    const bl = (x, y, r, t) => { if (SEED) { const jx = jit(x, y), jy = jit(x, y); blob(x + jx, y + jy, r * (0.82 + 0.36 * rnd()), t); } else blob(x, y, r, t); };
+    const jit = (x, y) => (SEED ? (rnd() - 0.5) * 2 * ((x >= 16 && x < 32 && y >= 16 && y < 32) ? 3.6 : 3.4) : 0);
+    const bl = (x, y, r, t) => { if (SEED) { const jx = jit(x, y), jy = jit(x, y); blob(x + jx, y + jy, r * (0.75 + 0.6 * rnd()), t); } else blob(x, y, r, t); };
     const F = (x, y, r) => bl(x, y, r, FOREST), R = (x, y, r) => bl(x, y, r, ROCK), O = (x, y, r) => bl(x, y, r, ORE),
           GD = (x, y, r) => bl(x, y, r, GOLD), WA = (x, y, r) => bl(x, y, r, WATER);
     // střed (začátek): les vlevo nahoře, skála vpravo dole, rybníček dole
@@ -1362,7 +1362,7 @@
 
   function helpHTML() {
     return '<h2>🌿 Zelené Údolí</h2>' +
-      '<p>Vybuduj z malé osady prosperující údolí. Splňuj <b>levely</b> – odemykají <b>nové budovy</b>. Mlhu rozptýlíš <b>Průzkumnou chatou</b> a sám si vybereš, kam se vydáš.</p>' +
+      '<p>Vybuduj z malé osady prosperující údolí. Splňuj <b>levely</b> – odemykají <b>nové budovy</b>. Šedé zamlžené oblasti jsou neprozkoumané. Mlhu rozptýlíš <b>Průzkumnou chatou</b> a sám si vybereš, kam se vydáš.</p>' +
       '<p>🚚 Budovy samy zboží nepřenášejí: vyráběj <b>dopravníky</b> (táhni prstem) a vozi suroviny do Radnice nebo do dalších budov. Víc surovin = musíš je dovézt na jedno místo.</p>' +
       '<p>🏠 Dělníci bydlí v chaloupkách do 6 polí od práce. Přes řeky vedou <b>mosty</b>, lesy a skály musíš obejít. Klepnutím na budovu vidíš, co dělá a co jí chybí.</p>';
   }
@@ -1373,10 +1373,11 @@
     let h = 7; for (const ch of t) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0;
     return Math.abs(h) || 1;
   }
-  function startNew(seed) {
+  function startNew(seed, openAll) {
     SEED = seed; setSalt(); genTerrain();
     for (const k in PROJ_POS) delete PROJ_POS[k];
-    placeProjects(); newState(); initFog(true); tool = null; sel = null; startCam(); save(); updateHUD(); tutTick(); showSheet();
+    placeProjects(); newState(); if (openAll) opened.fill(true); initFog(true); tool = null; sel = null; startCam(); save(); updateHUD(); tutTick(); showSheet();
+    toast(seed ? '🎲 Nová náhodná mapa (seed ' + seed + ')' : '🏞 Nová hra: pevné Údolí', 2800);
   }
   function ago() { if (!lastSaveAt) return 'právě teď'; const s2 = Math.round((Date.now() - lastSaveAt) / 1000); return s2 < 5 ? 'právě teď' : s2 < 90 ? 'před ' + s2 + ' s' : 'před ' + Math.round(s2 / 60) + ' min'; }
   function showMenu() {
@@ -1409,9 +1410,9 @@
     ]);
   }
   function showNewGame() {
-    showModal('<h2>🆕 Nová hra</h2><p>Současný postup se smaže (nejdřív si ho můžeš exportovat).</p><p>Náhodná mapa: seed může být číslo nebo slovo, stejný seed dá stejnou mapu. Nech prázdné pro náhodný.</p><input id="seedIn" class="seedin" placeholder="Seed (nepovinné)">', [
-      { label: '🎲 Náhodná mapa', fn: () => startNew(seedFromText($('seedIn').value)) },
-      { label: '🏞 Údolí (pevná)', cls: 'sec', fn: () => startNew(0) },
+    showModal('<h2>🆕 Nová hra</h2><p>Současný postup se smaže (nejdřív si ho můžeš exportovat).</p><p>Náhodná mapa: seed může být číslo nebo slovo, stejný seed dá stejnou mapu. Nech prázdné pro náhodný.</p><input id="seedIn" class="seedin" placeholder="Seed (nepovinné)"><label class="chk"><input type="checkbox" id="openAll"> Odkrýt celou mapu (bez mlhy)</label>', [
+      { label: '🎲 Náhodná mapa', fn: () => startNew(seedFromText($('seedIn').value), $('openAll').checked) },
+      { label: '🏞 Údolí (pevná)', cls: 'sec', fn: () => startNew(0, $('openAll').checked) },
       { label: 'Zpět', cls: 'sec' },
     ]);
   }
