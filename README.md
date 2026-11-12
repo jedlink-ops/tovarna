@@ -37,3 +37,10 @@ Otevři `index.html`, nebo `python3 -m http.server` → `http://localhost:8000`.
 ## GitHub Pages
 
 Settings → Pages → *Deploy from a branch* → `main` / `(root)`. Hra pak běží na `https://jedlink-ops.github.io/tovarna/`.
+
+## Postavičky
+- Každá pracující budova má jmenovaného pracovníka (dřevorubec kácí, kameník a horník kopou, farmář okopává, rybář rybaří, pekař, kovář, pilař…) – s vlastním nářadím a čepicí, nosí hotové zboží k budově.
+- V chaloupkách bydlí obyvatelé, kteří se procházejí, povídají si a v noci nebo při vlcích utečou domů.
+- Na staveništích pracují stavitelé, myslivec a hlídka střílejí/odhánějí vlky.
+- Postavičky mívají bubliny s hláškami (reagují na noc, déšť, hlad, vlky, požár).
+- Klepnutím na postavičku se otevře okénko se jménem, povoláním a aktuální činností.

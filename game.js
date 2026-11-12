@@ -261,7 +261,7 @@
 
   function makeB(type, x, y, dir) {
     return { type, x, y, dir: dir || 0, out: [], inv: {}, t: 0, working: false, state: 'ok', need: null, house: null,
-      item: null, p: 0, inDir: 0, bridge: false, food: 0, foodT: 4, hungry: false, used: 0, buf: null, from: null, rr: 0, smokeT: Math.random() * 2, bonus: 1, up: 1, site: null, broken: false, fire: 0, spreadT: 6, sold: 0 };
+      item: null, p: 0, inDir: 0, bridge: false, food: 0, foodT: 4, hungry: false, used: 0, buf: null, from: null, rr: 0, smokeT: Math.random() * 2, bonus: 1, id: ++bid, up: 1, site: null, broken: false, fire: 0, spreadT: 6, sold: 0 };
   }
   function addB(b) {
     blds.push(b);
@@ -513,7 +513,7 @@
   function update(dt) {
     clock += dt;
     if (clock >= nextSnap) { nextSnap = clock + 5; snaps.push([clock, Object.assign({}, stat.prod), Object.assign({}, stat.cons)]); if (snaps.length > 13) snaps.shift(); }
-    if (!quiet) worldTick(dt);
+    if (!quiet) { worldTick(dt); syncT -= dt; if (syncT <= 0) { syncT = 0.5; syncEnts(); } updateEnts(dt); }
     for (const b of blds.slice()) {
       if (b.site) continue;
       if (b.fire > 0) fireTick(b, dt);
@@ -633,6 +633,334 @@
     }
     recalc(); updateHUD(); save(); toast('↩ Vráceno zpět', 1100);
   }
+
+  // ---------- Postavičky ----------
+  let bid = 0, eid = 0, selE = null, syncT = 0;
+  const ents = [], arrows = [];
+  const MNAMES = ['Honza', 'Petr', 'Josef', 'Tomáš', 'Vojta', 'Karel', 'Matěj', 'Jakub', 'Ondra', 'Pavel', 'Franta', 'Lukáš', 'Martin', 'Milan', 'Zdeněk', 'Marek', 'Jirka', 'Standa'];
+  const FNAMES = ['Marie', 'Eva', 'Jana', 'Anežka', 'Lucie', 'Klára', 'Tereza', 'Hana', 'Božena', 'Veronika', 'Alena', 'Markéta', 'Katka', 'Eliška', 'Dana', 'Věra', 'Barbora', 'Ema'];
+  // role: [muž, žena, ikona, činnost, nástroj, vzhled]
+  const ROLE = {
+    lumber: ['Dřevorubec', 'Dřevorubkyně', '🪓', 'kácí strom', 'axe', { shirt: '#c0463a', hat: 'cap', hatc: '#7a2a22' }],
+    quarry: ['Kameník', 'Kamenice', '⛏️', 'láme kámen', 'pick', { shirt: '#8a8f98', hat: 'helm', hatc: '#e8b43a' }],
+    mine: ['Horník', 'Horničanka', '⛏️', 'těží rudu', 'pick', { shirt: '#6a5a50', hat: 'helm', hatc: '#d98c2a', lamp: true }],
+    goldmine: ['Zlatokop', 'Zlatokopka', '💰', 'rýžuje zlato', 'pick', { shirt: '#b89a3a', hat: 'helm', hatc: '#f0c24a', lamp: true }],
+    farm: ['Farmář', 'Farmářka', '🌾', 'obdělává pole', 'hoe', { shirt: '#4f8f4a', hat: 'straw' }],
+    fisher: ['Rybář', 'Rybářka', '🎣', 'chytá ryby', 'rod', { shirt: '#3f8fcf', hat: 'cap', hatc: '#2a5f8f' }],
+    hunter: ['Myslivec', 'Myslivkyně', '🏹', 'hlídá les', 'bow', { shirt: '#4a7a3a', hat: 'hood', hatc: '#2e5a28' }],
+    guard: ['Hlídač', 'Hlídačka', '🛡️', 'hlídkuje', 'spear', { shirt: '#4a6f95', hat: 'helm', hatc: '#aab4be' }],
+    sawmill: ['Pilař', 'Pilařka', '🪚', 'řeže prkna', 'saw', { shirt: '#a8793f', hat: 'cap', hatc: '#6a4424' }],
+    bakery: ['Pekař', 'Pekařka', '🍞', 'peče chleba', 'tray', { shirt: '#f4efe4', hat: 'chef', hatc: '#ffffff' }],
+    forge: ['Kovář', 'Kovářka', '🔨', 'kuje železo', 'hammer', { shirt: '#4a4a52', hat: 'none', apron: '#2a2a30' }],
+    workshop: ['Truhlář', 'Truhlářka', '🛠️', 'vyrábí nářadí', 'hammer', { shirt: '#7a6a4a', hat: 'cap', hatc: '#4a3a22' }],
+    jeweler: ['Klenotník', 'Klenotnice', '💎', 'brousí klenoty', 'gem', { shirt: '#7a4aa8', hat: 'beret', hatc: '#5a2a88' }],
+    builder: ['Stavitel', 'Stavitelka', '🏗️', 'staví', 'hammer', { shirt: '#d9822a', hat: 'helm', hatc: '#f5c53a' }],
+    resident: ['Obyvatel', 'Obyvatelka', '🏠', 'se prochází', null, { hat: 'none' }],
+  };
+  const SKIN = ['#f6d2b0', '#e8b98f', '#c99468', '#9a6a46'], HAIR = ['#3a2a1c', '#6a4424', '#c9a24a', '#1f1f24', '#b5532a', '#d8d2c8'];
+  const SHIRTS = ['#d65a4a', '#4f8fd0', '#6fb55a', '#e0a83a', '#a86ac0', '#e8e0d0', '#d0728a', '#4aa8a0'];
+  const SAY = {
+    day: ['Dobrý den!', 'Krásný den!', 'Ten les nám roste, co?', 'Čerstvé dřevo voní!', 'Dnes bude dobrá úroda.', 'Slyšel jsi tu sovu?', 'Máme tu pěknou osadu.', 'Kdy bude nová chaloupka?'],
+    eve: ['Brzy bude tma…', 'Je čas jít domů.', 'Hlavně ať nepřijdou vlci.'], hungry: ['Mám hlad…', 'Bez chleba se nepracuje.', 'Kde je ten chleba?'],
+    storm: ['Brr, prší!', 'Řeka stoupá!', 'Jen aby nezatopilo pásy.'], wolf: ['Vlci!', 'Zavřete dveře!', 'Pomoc, vlk!'], fire: ['Hoří!!', 'Vodu!', 'Zachraňte se!'],
+    lumber: ['Pozor, padá!', 'Dřevo bude!', 'Další strom dolů.'], quarry: ['Tvrdá skála…', 'Další balvan!'], mine: ['Tady je ruda!', 'Ta lampa svítí.'], goldmine: ['Zlato!', 'Třpytí se!'],
+    farm: ['Roste to krásně.', 'Jen aby nepršelo.'], fisher: ['Něco bere!', 'Dneska ryby nekoušou.'], hunter: ['Slyším vlka.', 'Mám je na mušce.'], guard: ['Všechno v pořádku.', 'Hlídám!'],
+    sawmill: ['Prkna jsou rovná!', 'Pilka zpívá.'], bakery: ['Ta vůně!', 'Čerstvý chleba!'], forge: ['Žhavé železo!', 'Bum, bum!'], workshop: ['Další nářadí.', 'Dobrá práce.'], jeweler: ['Krásný kámen.', 'Ten se leskne!'],
+    builder: ['Ještě pár prken!', 'Drž to rovně!', 'Pevné základy!'],
+  };
+  const pick = a => a[(Math.random() * a.length) | 0];
+  const doorOf = b => [b.x + size(b) / 2, b.y + size(b) - 0.06];
+  function makeEnt(key, role, b, home) {
+    const id = ++eid, fem = hash(id, 11) < 0.5, L = ROLE[role][5];
+    const look = { fem, skin: SKIN[(hash(id, 3) * SKIN.length) | 0], hair: HAIR[(hash(id, 5) * HAIR.length) | 0], shirt: L.shirt || SHIRTS[(hash(id, 7) * SHIRTS.length) | 0], pants: ['#4a3a2c', '#3a4a5c', '#5a4a3a', '#2f3a30'][(hash(id, 9) * 4) | 0], hat: L.hat, hatc: L.hatc, lamp: L.lamp, apron: L.apron, tool: ROLE[role][4] };
+    const nm = (fem ? FNAMES : MNAMES)[(hash(id, 13) * 18) | 0 % 18];
+    const e = { id, key, role, b, home, name: nm, look, x: 0, y: 0, faceX: 1, ph: Math.random() * 6, st: 'idle', t: 0, moving: false, hidden: false, carry: null, say: '', sayT: 0, chatT: 4 + Math.random() * 15, shootT: 0, wd: 5, spot: null, act: '', panic: false, tw: null };
+    const d = home ? doorOf(home) : doorOf(b);
+    e.x = d[0] + (Math.random() - 0.5) * 0.4; e.y = d[1];
+    if (role === 'resident') { e.st = 'stroll'; pickStroll(e); }
+    else e.st = 'commute';
+    if (role === 'builder') { const h = blds[0]; const hd = doorOf(h); e.x = hd[0]; e.y = hd[1]; }
+    return e;
+  }
+  function syncEnts() {
+    const want = new Map();
+    for (const b of blds) {
+      if (b.site) {
+        let prog = 0; for (const k in b.site.have) prog += b.site.have[k];
+        if (prog > 0) for (let i = 0; i < 2; i++) want.set('b:' + b.id + ':' + i, ['builder', b, null]);
+      } else {
+        if (B[b.type].work && b.house) want.set('w:' + b.id, [b.type, b, b.house]);
+        if (b.type === 'house') for (let i = 0, n = Math.min(3, 1 + b.used); i < n; i++) want.set('r:' + b.id + ':' + i, ['resident', b, b]);
+      }
+    }
+    for (let i = ents.length - 1; i >= 0; i--) {
+      const e = ents[i], w = want.get(e.key);
+      if (!w || w[0] !== e.role || w[1] !== e.b) { if (selE === e) selE = null; ents.splice(i, 1); continue; }
+      e.home = w[2]; want.delete(e.key);
+    }
+    for (const [key, w] of want) ents.push(makeEnt(key, w[0], w[1], w[2]));
+  }
+  function moveTo(e, tx, ty, sp, dt) {
+    const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy), st = sp * dt;
+    e.moving = true;
+    if (d <= st) { e.x = tx; e.y = ty; e.moving = false; return true; }
+    e.x += dx / d * st; e.y += dy / d * st; e.ph += st * 7;
+    if (Math.abs(dx) > 0.02) e.faceX = dx > 0 ? 1 : -1;
+    return false;
+  }
+  function pickStroll(e) {
+    const h = e.home || e.b;
+    for (let i = 0; i < 8; i++) {
+      const tx = h.x + 0.5 + (Math.random() - 0.5) * 7, ty = h.y + 1 + (Math.random() - 0.3) * 5, ix = Math.floor(tx), iy = Math.floor(ty);
+      if (inb(ix, iy) && landOk(terrain[iy * W + ix]) && !cell(ix, iy) && regionOpen(ix, iy)) { e.tx = tx; e.ty = ty; return; }
+    }
+    const d = doorOf(h); e.tx = d[0] + (Math.random() - 0.5); e.ty = d[1] + 0.2;
+  }
+  function wolfNear(e, r) { for (const w of wolves) if (w.state === 'hunt' && Math.hypot(w.x - e.x, w.y - e.y) < r) return true; return false; }
+  function pickSpot(e) {
+    const b = e.b, t = b.type, dx = b.x + 0.5, dy = b.y + 0.95;
+    e.look_at = null;
+    if (t === 'lumber' || t === 'hunter') {
+      for (let i = 0; i < 12; i++) {
+        const tx = b.x + Math.floor(Math.random() * 9) - 4, ty = b.y + Math.floor(Math.random() * 9) - 4;
+        if (tAt(tx, ty) === FOREST && !cell(tx, ty)) { e.spot = [tx + 0.5, ty + 0.95]; e.look_at = [tx + 0.5, ty]; return; }
+      }
+      e.spot = [dx + 0.9, dy - 0.1];
+    } else if (t === 'fisher') {
+      for (let i = 0; i < 14; i++) {
+        const tx = b.x + Math.floor(Math.random() * 7) - 3, ty = b.y + Math.floor(Math.random() * 7) - 3;
+        if (tAt(tx, ty) === WATER) { const wx = tx + 0.5, wy = ty + 0.5, ang = Math.atan2(b.y + 0.5 - wy, b.x + 0.5 - wx); e.spot = [wx + Math.cos(ang) * 0.85, wy + Math.sin(ang) * 0.85 + 0.2]; e.look_at = [wx, wy]; return; }
+      }
+      e.spot = [dx + 0.8, dy + 0.1];
+    } else if (t === 'farm') { e.spot = [b.x + 0.5 + (Math.random() - 0.5) * 1.5, b.y + 0.55 + Math.random() * 0.8]; e.look_at = [e.spot[0] + 1, e.spot[1]]; }
+    else { const sd = Math.random() < 0.5 ? -1 : 1; e.spot = [dx + sd * (0.65 + Math.random() * 0.4), dy + 0.1]; e.look_at = [b.x + 0.5, b.y + 0.5]; }
+  }
+  const OUT_ITEM = b => (B[b.type].rec ? B[b.type].rec.out : null);
+  function updateEnt(e, dt) {
+    const b = e.b; e.t += dt; e.moving = false; e.panic = false;
+    if (e.sayT > 0) e.sayT -= dt;
+    e.chatT -= dt; if (e.chatT <= 0 && !e.hidden) { e.chatT = 14 + Math.random() * 22; sayFor(e); }
+    const dark = darkness() > 0.5;
+    if (e.role === 'resident') {
+      const h = e.home, door = doorOf(h);
+      if (h.fire > 0) e.panic = true;
+      if (e.st === 'inside') {
+        e.hidden = true;
+        if (!dark && !wolfNear(e, 9) && Math.random() < dt * 0.4) { e.hidden = false; e.st = 'stroll'; e.x = door[0]; e.y = door[1]; pickStroll(e); }
+        return;
+      }
+      if (dark || wolfNear(e, 5)) e.st = 'gohome';
+      if (e.st === 'gohome') { if (moveTo(e, door[0], door[1], 1.9, dt)) { e.st = 'inside'; e.hidden = true; } return; }
+      if (e.st === 'stroll') { if (moveTo(e, e.tx, e.ty, 1.0, dt)) { e.st = 'pause'; e.t = 0; e.wd = 2 + Math.random() * 5; e.act = pick(['povídá si', 'odpočívá', 'rozhlíží se', 'sbírá květiny', 'hledí do dálky']); } return; }
+      if (e.st === 'pause') { if (e.t > e.wd) { pickStroll(e); e.st = 'stroll'; } return; }
+      e.st = 'stroll'; pickStroll(e); return;
+    }
+    // ----- pracovníci
+    const door = doorOf(b), D = B[b.type];
+    if (e.role === 'builder') {
+      if (e.st === 'commute') {
+        if (e.sp === undefined) { e.sp = [[b.x + 0.25, b.y + size(b) - 0.05], [b.x + size(b) - 0.25, b.y + size(b) - 0.05]][e.key.endsWith(':0') ? 0 : 1]; }
+        if (moveTo(e, e.sp[0], e.sp[1], 1.5, dt)) { e.st = 'work'; e.faceX = e.sp[0] > b.x + size(b) / 2 ? -1 : 1; }
+      }
+      return;
+    }
+    if (b.fire > 0) { e.panic = true; e.st = 'idle'; return; }
+    if (e.st === 'commute') { if (moveTo(e, door[0], door[1], 1.5, dt)) e.st = 'idle'; return; }
+    if (D.range && D.mode === 'kill') {   // myslivec, hlídka: střelba na vlky
+      let tgt = null, bd = 1e9; const r = D.range + (b.up - 1) * 1.5;
+      for (const w of wolves) { const d = Math.hypot(w.x - e.x, w.y - e.y); if (d <= r && d < bd) { bd = d; tgt = w; } }
+      if (tgt && !b.broken) {
+        e.st = 'shoot'; e.tw = tgt; e.faceX = tgt.x >= e.x ? 1 : -1; e.shootT -= dt; e.carry = null;
+        if (e.shootT <= 0) { e.shootT = 0.9; if (D.rec) arrows.push({ x: e.x, y: e.y - 0.5, tx: tgt.x, ty: tgt.y - 0.2, t: 0 }); }
+        return;
+      } else if (e.st === 'shoot') { e.st = 'idle'; e.t = 0; }
+    }
+    const active = !b.broken && (D.rec ? b.working : true);
+    if (!D.rec) {   // hlídka: obchůzka kolem věže
+      if (b.broken) { e.st = 'idle'; return; }
+      if (e.st === 'idle' || e.st === 'patrol') {
+        if (!e.spot || e.st === 'idle') { const a = Math.random() * 6.28; e.spot = [b.x + 0.5 + Math.cos(a) * 1.7, b.y + 0.8 + Math.sin(a) * 1.3]; e.st = 'patrol'; }
+        if (moveTo(e, e.spot[0], e.spot[1], 0.8, dt)) { e.st = 'pausep'; e.t = 0; }
+      } else if (e.st === 'pausep' && e.t > 1.5) e.st = 'idle';
+      return;
+    }
+    if (e.st === 'idle') {
+      if (e.moving) e.moving = false;
+      if (e.carry) e.carry = null;
+      if (active && e.t > 0.4) { pickSpot(e); e.st = 'toSpot'; e.t = 0; }
+      else if (!active) { if (Math.abs(e.x - door[0]) + Math.abs(e.y - door[1]) > 0.05) { if (moveTo(e, door[0] + 0.5, door[1] + 0.05, 1.2, dt)) e.faceX = 1; } }
+    } else if (e.st === 'toSpot') {
+      if (!active) { e.st = 'back'; return; }
+      if (moveTo(e, e.spot[0], e.spot[1], 1.25, dt)) { e.st = 'work'; e.t = 0; e.wd = 3.5 + Math.random() * 3.5; if (e.look_at) e.faceX = e.look_at[0] >= e.x ? 1 : -1; }
+    } else if (e.st === 'work') {
+      if (e.look_at) e.faceX = e.look_at[0] >= e.x ? 1 : -1;
+      if (e.t > e.wd || !active) { e.st = 'back'; e.carry = active ? OUT_ITEM(b) : null; }
+    } else if (e.st === 'back') {
+      if (moveTo(e, door[0], door[1], 1.3, dt)) { e.st = 'drop'; e.t = 0; }
+    } else if (e.st === 'drop') {
+      if (e.t > 0.5) { e.carry = null; e.st = 'idle'; e.t = 0; }
+    } else e.st = 'idle';
+  }
+  function sayFor(e) {
+    const b = e.b; let line = null;
+    if (e.role === 'resident') {
+      if (e.home.fire > 0) line = pick(SAY.fire);
+      else if (wolfNear(e, 7)) line = pick(SAY.wolf);
+      else if (lvl >= FOOD_LVL && e.home.hungry) line = pick(SAY.hungry);
+      else if (storm.warn > 0 || storm.t > 0) line = pick(SAY.storm);
+      else if (phase() > 0.55) line = pick(SAY.eve);
+      else line = pick(SAY.day);
+    } else if (b.fire > 0) line = pick(SAY.fire);
+    else if (wolfNear(e, 8) && (e.role === 'hunter' || e.role === 'guard')) line = pick(SAY.wolf.slice(0, 1).concat(['Mám je!', 'Zpátky do lesa!']));
+    else if (e.home && e.home.hungry && lvl >= FOOD_LVL && Math.random() < 0.4) line = pick(SAY.hungry);
+    else if (SAY[e.role]) line = pick(SAY[e.role]);
+    if (line) { e.say = line; e.sayT = 3; }
+  }
+  function updateEnts(dt) {
+    for (const e of ents) updateEnt(e, dt);
+    for (let i = arrows.length - 1; i >= 0; i--) {
+      const a = arrows[i]; a.t += dt * 3.2;
+      if (a.t >= 1) arrows.splice(i, 1);
+    }
+  }
+  function entAt(wx, wy) {
+    let best = null, bd = 0.5;
+    for (const e of ents) { if (e.hidden) continue; const d = Math.hypot(wx - e.x, wy - (e.y - 0.38)); if (d < bd) { bd = d; best = e; } }
+    return best;
+  }
+  function entActivity(e) {
+    const b = e.b, D = B[b.type], nm = D.n;
+    if (e.role === 'resident') {
+      if (e.st === 'inside') return '😴 je doma' + (phase() > 0.62 ? ' a spí' : '');
+      if (e.st === 'gohome') return '🏃 spěchá domů';
+      if (e.home.fire > 0) return '🔥 utíká před ohněm';
+      if (lvl >= FOOD_LVL && e.home.hungry) return '😟 má hlad – dovez do chaloupky jídlo';
+      return e.st === 'pause' ? '🙂 ' + e.act : '🚶 se prochází';
+    }
+    if (e.role === 'builder') return e.st === 'commute' ? '🚶 jde na staveniště' : '🏗️ staví: ' + nm + ' (' + Math.round(progOf(b) * 100) + '%)';
+    if (b.fire > 0) return '🔥 utíká před ohněm!';
+    if (b.broken) return '🔧 čeká na opravu (' + nm.toLowerCase() + ' je rozbitá)';
+    if (e.st === 'commute') return '🚶 jde do práce';
+    if (e.st === 'shoot') return e.role === 'hunter' ? '🏹 střílí na vlka!' : '🛡️ odhání vlka!';
+    if (e.st === 'patrol' || e.st === 'pausep') return '🛡️ hlídkuje kolem věže';
+    if (e.st === 'toSpot') return '🚶 míří na pracoviště';
+    if (e.st === 'work') return ROLE[e.role][2] + ' ' + ROLE[e.role][3];
+    if (e.st === 'back') return '📦 nese ' + (e.carry ? RES[e.carry].n.toLowerCase() : 'výrobek') + ' k budově';
+    if (e.st === 'drop') return '📦 odkládá hotové zboží';
+    if (b.state === 'input') return '⏳ čeká na ' + (b.need ? RES[b.need].n.toLowerCase() : 'vstup') + ' – chybí dovoz';
+    if (b.state === 'blocked') return '📦 výstup je plný – připoj pás';
+    return '💤 odpočívá';
+  }
+  function entHTML(e) {
+    const R = ROLE[e.role], role = e.look.fem ? R[1] : R[0], b = e.b;
+    let h = `<div class="ph"><span class="av">${R[2]}</span><b>${e.name}</b><span class="muted">${role}</span><button class="x" data-a="pclose">✕</button></div>`;
+    h += `<div class="pstat ${b.fire > 0 || b.broken ? 'bad' : 'ok'}">${entActivity(e)}</div>`;
+    if (e.role === 'resident') h += `<div class="pd">🏠 Bydlí v chaloupce${e.home.up > 1 ? ' ' + '★'.repeat(e.home.up - 1) : ''}, v domě je ${e.home.used}/${HOUSE_SLOTS + e.home.up - 1} pracovníků.</div>`;
+    else if (e.role === 'builder') h += `<div class="pd">Staví <b>${B[b.type].n}</b>. Čím víc materiálu pásy dovezou, tím rychleji to půjde.</div>`;
+    else h += `<div class="pd">🔨 Pracuje: <b>${B[b.type].n}</b>${e.home ? '<br>🏠 Bydlí v chaloupce (' + Math.max(Math.abs(e.home.x - b.x), Math.abs(e.home.y - b.y)) + ' polí od práce)' : ''}</div>`;
+    h += '<div class="pbtns">' + (e.home && e.role !== 'builder' ? '<button class="act sec" data-a="phome">🏠 Domov</button>' : '') + (e.role !== 'resident' ? '<button class="act sec" data-a="pwork">🔨 Práce</button>' : '') + '</div>';
+    return h;
+  }
+  function updateEntPopup() {
+    const e = selE, html = entHTML(e);
+    if (html !== popKey || popB !== e) { popEl.innerHTML = html + '<div class="tail"></div>'; popKey = html; popB = e; popFill = null; }
+    popEl.classList.add('show');
+    const z = cam.z, sx = (e.x * T - cam.x) * z, sTop = (e.y * T - 40 - cam.y) * z, sBot = (e.y * T + 10 - cam.y) * z;
+    const w = popEl.offsetWidth, h = popEl.offsetHeight;
+    let left = clamp(sx - w / 2, 8, vw - w - 8), top = sTop - h - 12, below = false;
+    if (top < 150) { top = sBot + 14; below = true; }
+    const maxTop = vh - palette.offsetHeight - h - 8; if (top > maxTop) top = maxTop;
+    popEl.style.left = left + 'px'; popEl.style.top = top + 'px'; popEl.classList.toggle('below', below);
+    const tail = popEl.querySelector('.tail'); if (tail) tail.style.left = clamp(sx - left, 18, w - 18) + 'px';
+  }
+  // ---- kreslení postaviček
+  function drawArmTool(e, time, working) {
+    const L = e.look, k = L.tool, wp = time * 7.5 + e.id, sw = Math.max(0, Math.sin(wp));
+    const arm = (x1, y1, x2, y2) => { ctx.strokeStyle = L.shirt; ctx.lineWidth = 2.8; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.fillStyle = L.skin; ctx.beginPath(); ctx.arc(x2, y2, 1.7, 0, 6.3); ctx.fill(); };
+    if (e.panic) { arm(-4, -16, -8, -26 + Math.sin(time * 14) * 2); arm(4, -16, 8, -26 - Math.sin(time * 14) * 2); return; }
+    const sh = e.moving ? Math.sin(e.ph) * 2 : 0;
+    const handle = (hx, hy, a, len, col) => { ctx.strokeStyle = col || '#7a5230'; ctx.lineWidth = 1.9; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * len, hy + Math.sin(a) * len); ctx.stroke(); return [hx + Math.cos(a) * len, hy + Math.sin(a) * len]; };
+    const head = (p, a, kind) => {
+      ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(a);
+      if (kind === 'axe') { ctx.fillStyle = '#b8c1ca'; ctx.beginPath(); ctx.moveTo(-1, -3); ctx.lineTo(4, -4); ctx.lineTo(4, 3); ctx.lineTo(-1, 2); ctx.closePath(); ctx.fill(); }
+      else if (kind === 'pick') { ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-5, -1); ctx.quadraticCurveTo(0, -4, 5, -1); ctx.stroke(); }
+      else if (kind === 'hammer') { ctx.fillStyle = '#6a6f78'; ctx.fillRect(-1, -3, 5, 6); }
+      else if (kind === 'hoe') { ctx.fillStyle = '#9aa3ad'; ctx.fillRect(-1, -1, 4, 4); }
+      ctx.restore();
+    };
+    if (k === 'axe' || k === 'pick' || k === 'hammer' || k === 'hoe') {
+      const hx = 5, hy = -13;
+      if (working) { const a = -2.1 + sw * 2.7; arm(3.5, -15.5, hx, hy); head(handle(hx, hy, a, 9), a, k); }
+      else { arm(-4, -15.5, -5.5 + sh, -9.5); arm(3.5, -15.5, hx, hy); const a = -1.9; head(handle(hx, hy, a, 9), a, k); }
+    } else if (k === 'rod') {
+      arm(3.5, -15.5, 6, -13); const tip = handle(6, -13, -0.75, 15, '#8a5a30');
+      if (working) { const by = tip[1] + 11 + Math.sin(time * 3 + e.id) * 1.2; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(tip[0], tip[1]); ctx.lineTo(tip[0] + 5, by); ctx.stroke(); ctx.fillStyle = '#e8584a'; ctx.beginPath(); ctx.arc(tip[0] + 5, by, 1.5, 0, 6.3); ctx.fill(); }
+      arm(-4, -15.5, -5 + sh, -9.5);
+    } else if (k === 'bow') {
+      const aim = e.st === 'shoot' || working;
+      arm(3.5, -15.5, 9, -15); ctx.strokeStyle = '#8a5a30'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(8, -15, 7, -1.2, 1.2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(8 + Math.cos(-1.2) * 7, -15 + Math.sin(-1.2) * 7); ctx.lineTo(aim ? 3 : 8 + 2, -15); ctx.lineTo(8 + Math.cos(1.2) * 7, -15 + Math.sin(1.2) * 7); ctx.stroke();
+      if (aim) { arm(-3.5, -15.5, 3, -15); ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(3, -15); ctx.lineTo(13, -15); ctx.stroke(); } else arm(-4, -15.5, -5 + sh, -9.5);
+    } else if (k === 'spear') {
+      const thr = e.st === 'shoot' ? Math.sin(time * 9 + e.id) * 3 : 0;
+      arm(3.5, -15.5, 6 + thr, -13);
+      if (e.st === 'shoot') { ctx.strokeStyle = '#7a5230'; ctx.lineWidth = 1.9; ctx.beginPath(); ctx.moveTo(1 + thr, -11); ctx.lineTo(18 + thr, -15); ctx.stroke(); ctx.fillStyle = '#d3dae0'; ctx.beginPath(); ctx.moveTo(18 + thr, -17); ctx.lineTo(22 + thr, -15); ctx.lineTo(18 + thr, -13); ctx.fill(); }
+      else { ctx.strokeStyle = '#7a5230'; ctx.lineWidth = 1.9; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(7, -31); ctx.stroke(); ctx.fillStyle = '#d3dae0'; ctx.beginPath(); ctx.moveTo(5.5, -31); ctx.lineTo(7, -36); ctx.lineTo(8.5, -31); ctx.fill(); }
+      arm(-4, -15.5, -5 + sh, -9.5);
+    } else if (k === 'saw') {
+      const off = working ? Math.sin(wp * 1.3) * 2.5 : 0;
+      arm(3.5, -15.5, 7 + off, -12); ctx.fillStyle = '#cfd6dc'; ctx.fillRect(7 + off, -12.5, 9, 2.4); ctx.strokeStyle = '#7a5230'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(6 + off, -14.5); ctx.lineTo(7 + off, -10); ctx.stroke(); arm(-4, -15.5, -5 + sh, -9.5);
+    } else if (k === 'tray') {
+      arm(3.5, -15.5, 7, -12.5); ctx.fillStyle = '#c99a62'; ctx.fillRect(4, -13.5, 10, 2); ctx.fillStyle = '#e0a45a'; ctx.beginPath(); ctx.ellipse(8, -15, 2.6, 1.8, 0, 0, 6.3); ctx.ellipse(12, -15, 2.6, 1.8, 0, 0, 6.3); ctx.fill(); arm(-4, -15.5, -5 + sh, -9.5);
+    } else if (k === 'gem') {
+      arm(3.5, -15.5, 7, -13); const a = 0.6 + 0.4 * Math.sin(time * 3 + e.id); ctx.fillStyle = '#b07ae8'; ctx.beginPath(); ctx.moveTo(7, -18); ctx.lineTo(10, -15); ctx.lineTo(7, -12); ctx.lineTo(4, -15); ctx.closePath(); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(11, -19); ctx.lineTo(13, -21); ctx.moveTo(12, -16); ctx.lineTo(14, -16); ctx.stroke(); arm(-4, -15.5, -5 + sh, -9.5);
+    } else { arm(-4.2, -15.5, -5.5 + sh, -9.5); arm(4.2, -15.5, 5.5 - sh, -9.5); }
+  }
+  function drawSay(e, X, Y) {
+    ctx.font = '700 11px sans-serif'; const w = ctx.measureText(e.say).width + 12, a = Math.min(1, e.sayT * 2);
+    ctx.globalAlpha = a; ctx.fillStyle = 'rgba(255,252,240,.97)'; rrect(X - w / 2, Y - 62, w, 19, 8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(X - 4, Y - 44); ctx.lineTo(X, Y - 39); ctx.lineTo(X + 4, Y - 44); ctx.fill();
+    ctx.fillStyle = '#33281c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(e.say, X, Y - 52); ctx.globalAlpha = 1;
+  }
+  function drawPerson(e, time) {
+    if (e.hidden) return;
+    const L = e.look, X = e.x * T, Y = e.y * T, mv = e.moving, working = e.st === 'work';
+    const bob = mv ? Math.abs(Math.sin(e.ph)) * 1.6 : Math.sin(time * 2 + e.id) * 0.35;
+    if (e === selE) { ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X, Y + 1, 12, 5.5, 0, 0, 6.3); ctx.stroke(); }
+    ctx.save(); ctx.translate(X, Y);
+    ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.beginPath(); ctx.ellipse(0, 1, 7, 3, 0, 0, 6.3); ctx.fill();
+    ctx.scale(e.faceX < 0 ? -1 : 1, 1); ctx.translate(0, -bob);
+    const ls = mv ? Math.sin(e.ph) * 3.6 : 0;
+    ctx.lineCap = 'round'; ctx.strokeStyle = L.pants; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(-2, -8); ctx.lineTo(-2 + ls, -0.5); ctx.moveTo(2, -8); ctx.lineTo(2 - ls, -0.5); ctx.stroke();
+    ctx.fillStyle = '#3a2a1c'; ctx.beginPath(); ctx.ellipse(-2 + ls, -0.4, 2.3, 1.3, 0, 0, 6.3); ctx.ellipse(2 - ls, -0.4, 2.3, 1.3, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = L.shirt;
+    if (L.fem) { ctx.beginPath(); ctx.moveTo(-4, -17); ctx.lineTo(4, -17); ctx.lineTo(6.5, -6); ctx.lineTo(-6.5, -6); ctx.closePath(); ctx.fill(); } else { rrect(-4.8, -17.5, 9.6, 10.5, 3); ctx.fill(); }
+    if (L.apron) { ctx.fillStyle = L.apron; rrect(-3.4, -14, 6.8, 8, 2); ctx.fill(); }
+    drawArmTool(e, time, working || e.st === 'shoot');
+    ctx.fillStyle = L.skin; ctx.beginPath(); ctx.arc(0, -21.5, 4.5, 0, 6.3); ctx.fill();
+    ctx.fillStyle = L.hair; ctx.beginPath(); ctx.arc(0, -22.3, 4.8, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
+    if (L.fem) { rrect(-5.2, -23, 3.2, 9, 1.6); ctx.fill(); }
+    const hc = L.hatc;
+    if (L.hat === 'cap') { ctx.fillStyle = hc; ctx.beginPath(); ctx.arc(0, -23, 4.9, Math.PI, 0); ctx.fill(); ctx.fillRect(1, -23.4, 7, 1.8); }
+    else if (L.hat === 'helm') { ctx.fillStyle = hc; ctx.beginPath(); ctx.arc(0, -23.3, 5.3, Math.PI, 0); ctx.fill(); ctx.fillRect(-5.6, -23.5, 11.2, 1.6); if (L.lamp) { ctx.fillStyle = '#fff4b0'; ctx.beginPath(); ctx.arc(3.8, -26, 1.6, 0, 6.3); ctx.fill(); } }
+    else if (L.hat === 'straw') { ctx.fillStyle = '#e6c46a'; ctx.beginPath(); ctx.ellipse(0, -24.4, 8.2, 2.3, 0, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.arc(0, -24.6, 4.2, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#c0463a'; ctx.fillRect(-4, -25.6, 8, 1); }
+    else if (L.hat === 'hood') { ctx.fillStyle = hc; ctx.beginPath(); ctx.moveTo(-5, -22); ctx.lineTo(0, -30); ctx.lineTo(5, -22); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#e8584a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(2, -27); ctx.lineTo(6, -30); ctx.stroke(); }
+    else if (L.hat === 'chef') { ctx.fillStyle = '#fff'; ctx.fillRect(-3.8, -29, 7.6, 6); ctx.beginPath(); ctx.arc(-2.4, -29, 2.6, 0, 6.3); ctx.arc(2.4, -29, 2.6, 0, 6.3); ctx.fill(); }
+    else if (L.hat === 'beret') { ctx.fillStyle = hc; ctx.beginPath(); ctx.ellipse(-0.5, -25.5, 5.6, 2.4, -0.2, 0, 6.3); ctx.fill(); }
+    ctx.fillStyle = '#2a2420'; ctx.beginPath(); ctx.arc(2, -21.3, 0.85, 0, 6.3); ctx.fill();
+    ctx.restore();
+    if (e.carry && A.icon[e.carry]) A.blit(ctx, A.icon[e.carry], X, Y - 36 - bob, 0.5);
+    if (e.panic) { ctx.font = '800 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ff6a5a'; ctx.fillText('!', X, Y - 34 - Math.abs(Math.sin(time * 9)) * 3); }
+    if (e.sayT > 0 && cam.z >= 0.7) drawSay(e, X, Y - bob);
+  }
+  function drawArrows() {
+    ctx.strokeStyle = '#f1e6c8'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+    for (const a of arrows) {
+      const x = (a.x + (a.tx - a.x) * a.t) * T, y = (a.y + (a.ty - a.y) * a.t) * T - Math.sin(a.t * 3.14) * 14, dx = a.tx - a.x, dy = a.ty - a.y, n = Math.hypot(dx, dy) || 1;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - dx / n * 9, y - dy / n * 9); ctx.stroke();
+    }
+  }
+
   // ---------- Hledání cesty (tutoriál + testy) ----------
   function bfsPath(sx, sy, goalFn, allowWater) {
     const prev = new Map(), q = [[sx, sy]]; prev.set(sy * W + sx, -1);
@@ -1019,6 +1347,12 @@
       if (sx < -rr || sy < -rr || sx > vw + rr || sy > vh + rr) continue;
       lights.push([sx, sy, rr, b.fire > 0 ? 1 : 0]);
     }
+    for (const e of ents) {
+      if (e.hidden || e.role === 'resident') continue;
+      const sx = (e.x * T - cam.x) * cam.z, sy = (e.y * T - 14 - cam.y) * cam.z, rr = 1.5 * T * cam.z;
+      if (sx < -rr || sy < -rr || sx > vw + rr || sy > vh + rr) continue;
+      lights.push([sx, sy, rr, 0]);
+    }
     for (const [sx, sy, rr] of lights) {
       const g = nctx.createRadialGradient(sx / 2, sy / 2, rr * 0.05, sx / 2, sy / 2, rr / 2);
       g.addColorStop(0, 'rgba(0,0,0,.95)'); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1136,13 +1470,17 @@
     drawGround(x0, y0, x1, y1, time);
     drawBelts(x0, y0, x1, y1, time);
     drawOverlays(x0, y0, x1, y1, time);
+    const entRows = {};
+    for (const e of ents) { if (e.hidden) continue; const ry = Math.floor(e.y); (entRows[ry] || (entRows[ry] = [])).push(e); }
     for (let y = y0; y <= Math.min(H - 1, y1 + 1); y++) {
       for (let x = x0; x <= x1; x++) {
         const b = grid[y * W + x];
         drawProps(x, y, time, b);
         if (b && b.type !== 'conveyor' && b.x === x && b.y + size(b) - 1 === y) drawBuilding(b, time);
       }
+      const eb = entRows[y]; if (eb) { eb.sort((p, q) => p.y - q.y); for (const e of eb) drawPerson(e, time); }
     }
+    drawArrows();
     for (const p of puffs) {
       const k = p.t / 1.8;
       ctx.fillStyle = `rgba(250,250,250,${0.6 * (1 - k)})`;
@@ -1220,7 +1558,7 @@
       el.innerHTML = `<img class="th" src="${A.thumbs[t]}" alt=""><span class="nm">${nm}</span><span class="cs"></span>`;
       el.onclick = () => {
         if (lvl < UNLOCK_AT[t]) { toast(`🔒 ${nm} se odemkne po splnění levelu ${UNLOCK_AT[t] - 1}`); return; }
-        sel = null; tool = tool === t ? null : t;
+        sel = null; selE = null; tool = tool === t ? null : t;
         refreshPalette(); showSheet();
       };
       palette.appendChild(el); cards[t] = el;
@@ -1334,6 +1672,7 @@
     return h;
   }
   function updatePopup() {
+    if (selE) { if (ents.indexOf(selE) < 0 || selE.hidden) selE = null; else { updateEntPopup(); return; } }
     if (!sel) { popEl.classList.remove('show'); popB = null; return; }
     const html = popHTML(sel);
     if (html !== popKey || popB !== sel) { popEl.innerHTML = html + '<div class="tail"></div>'; popKey = html; popB = sel; popFill = $('pbfill'); }
@@ -1352,7 +1691,15 @@
     const tail = popEl.querySelector('.tail'); if (tail) tail.style.left = clamp(sx - left, 18, w - 18) + 'px';
   }
   popEl.addEventListener('click', e => {
-    const a = e.target.closest('[data-a]'); if (!a || !sel) return;
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    if (selE) {
+      const act = a.dataset.a, en = selE;
+      if (act === 'pclose') { selE = null; updatePopup(); }
+      else if (act === 'phome' && en.home) { sel = en.home; selE = null; flyTo((sel.x + 0.5) * T, (sel.y + 0.5) * T); }
+      else if (act === 'pwork' && en.b) { sel = en.b; selE = null; flyTo((sel.x + 0.5) * T, (sel.y + 0.5) * T); }
+      return;
+    }
+    if (!sel) return;
     if (a.dataset.a === 'pclose') { sel = null; updatePopup(); }
     if (a.dataset.a === 'pdemo') { demolish(sel); sel = null; updatePopup(); updateHUD(); save(); }
     if (a.dataset.a === 'protate') { sel.dir = (sel.dir + 1) & 3; rot = sel.dir; }
@@ -1374,6 +1721,7 @@
     return Math.abs(h) || 1;
   }
   function startNew(seed, openAll) {
+    ents.length = 0; selE = null;
     SEED = seed; setSalt(); genTerrain();
     for (const k in PROJ_POS) delete PROJ_POS[k];
     placeProjects(); newState(); if (openAll) opened.fill(true); initFog(true); tool = null; sel = null; startCam(); save(); updateHUD(); tutTick(); showSheet();
@@ -1481,13 +1829,14 @@
   function onTap(sx, sy) {
     const [tx, ty] = toTile(sx, sy);
     if (!inb(tx, ty)) return;
+    if (!tool) { const en = entAt((sx / cam.z + cam.x) / T, (sy / cam.z + cam.y) / T); if (en) { selE = en; sel = null; refreshPalette(); showSheet(); return; } }
     const b = cell(tx, ty);
     if (b && b.fire > 0 && !tool) { b.fire = Math.max(0, b.fire - 0.2); popups.push({ x: tx * T + T / 2, y: ty * T, t: 0, txt: '💧' }); sel = b; return; }
     if (tool === 'conveyor' && b && b.type === 'conveyor') { b.dir = (b.dir + 1) & 3; rot = b.dir; return; }
-    if (b && tool !== 'erase') { tool = null; sel = b; refreshPalette(); showSheet(); return; }
+    if (b && tool !== 'erase') { tool = null; sel = b; selE = null; refreshPalette(); showSheet(); return; }
     if (tool && tool !== 'erase' && tool !== 'conveyor') { if (place(tool, tx, ty)) { updateHUD(); showSheet(); } return; }
     if (!regionOpen(tx, ty)) { toast('🔒 ' + REG_NAMES[regIdxAt(tx, ty)] + ' – postav Průzkumnou chatu do 10 polí'); return; }
-    sel = null;
+    sel = null; selE = null;
   }
   function initInput() {
     canvas.addEventListener('pointerdown', e => {
@@ -1617,6 +1966,7 @@
     const r = load();
     if (!r) newState();
     initFog(true);
+    syncEnts();
     startCam();
     updateHUD();
     tutTick();
@@ -1636,7 +1986,7 @@
     give: (k, n) => { stock[k] += n; }, setLvl: n => { lvl = n; for (let i = 0; i < Math.min(9, n); i++) opened[i] = true; recalc(); }, opened: () => opened, openRegion, scoutCost, scoutTargets, undo, startNew, exportCode, importCode, stat: () => stat, setTool: t => { tool = t; refreshPalette(); showSheet(); }, select: b => { sel = b; tool = null; refreshPalette(); showSheet(); },
     setSpeed: n => { speed = n; }, recalc, updateHUD, skipTut: () => { tut.on = false; showSheet(); },
     get tgt() { return tutTgt; }, get tpath() { return tutPathTiles; },
-    wolves, spawnWolf, breakB, repairAll, startUpgrade, siteCheck, igniteRandom, floodHit, upgradeCost, darkness, phase, setClock: t => { clock = t; }, getClock: () => clock, PROJ_POS, isNight,
+    ents, syncEnts, updateEnts, entAt, wolves, spawnWolf, breakB, repairAll, startUpgrade, siteCheck, igniteRandom, floodHit, upgradeCost, darkness, phase, setClock: t => { clock = t; }, getClock: () => clock, PROJ_POS, isNight,
     centerOn, setZoom: z => { cam.z = z; },
     layBelt(path, target) {
       // path = [[x,y]...] od prvního pole pásu; poslední pás míří do budovy target
