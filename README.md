@@ -1,33 +1,30 @@
-# 🏭 Mini Továrna
+# 🌿 Zelené Údolí
 
-Jednoduchá hra ve stylu Factoria, určená pro mobil (dotykové ovládání). Běží v prohlížeči, žádná instalace ani build.
+Útulná budovatelská hra pro mobil (běží v prohlížeči, žádná instalace ani build). Z malé osady vybuduj prosperující údolí.
 
 ## Jak se hraje
 
-- Vyber nástroj dole a **táhni prstem** po mapě. Pásy se kreslí ve směru tažení.
-- **Dva prsty** = posun a zoom. Nástroj ✋ posouvá mapu jedním prstem, klepnutím na pás ho otočíš.
-- ⛏️ **Důl** se staví na rudu (šedomodrá = železo, oranžová = měď) a sám předává rudu sousedním pásům a strojům.
-- 🔥 **Pec** taví rudu na plechy, ⚙️ **Kola** z 2 železných plechů dělají ozubené kolo, 🔌 **Obvody** z 1 železa + 1 mědi dělají obvod.
-- Všechno, co dopravíš do 📦 **základny**, se přičte do zásob a z plechů a kol platíš nové stavby.
-- Plň úkoly nahoře, za každý dostaneš bonus.
-- Postup se ukládá automaticky do prohlížeče (localStorage).
+- Vyber budovu dole a **klepni na zvýrazněné pole**. Mapu posouváš prstem, dvěma prsty přibližuješ.
+- Klepnutím na postavenou budovu uvidíš její stav a můžeš ji zbourat (vrátí polovinu ceny).
+- Nahoře vidíš **level a jeho cíle**. Každý splněný level:
+  - odemkne **novou oblast mapy** (zatím schovanou v mlze),
+  - odemkne **nové budovy**,
+  - dá bonusové suroviny.
+- 9 levelů, cíl je postavit **Velký chrám**.
+
+## Mechaniky
+
+- 🏠 **Chaloupky** přivádějí obyvatele, ti pracují v budovách (každá výrobní budova potřebuje 1 pracovníka).
+- 🍞 Od levelu 3 obyvatelé jedí chléb a ryby. Při hladu hra zpomalí práci a lidé přestanou přibývat.
+- 💧 **Studna** zrychlí všechny sousední budovy o 50 %. 🌾 Pole u vody rostou rychleji.
+- 📦 **Sklady** zvětšují místo pro každou surovinu. Když je sklad plný, výroba stojí.
+- ⏩ Tlačítko vpravo nahoře zrychlí čas (1×, 2×, 4×).
+- Postup se ukládá automaticky a údolí pracuje i po tvém odchodu (až 15 minut).
 
 ## Spuštění lokálně
 
-Stačí otevřít `index.html` v prohlížeči, nebo např. `python3 -m http.server` a jít na `http://localhost:8000`.
+Otevři `index.html` v prohlížeči, nebo `python3 -m http.server` a jdi na `http://localhost:8000`.
 
-## Nahrání na GitHub a hraní z mobilu (GitHub Pages)
+## GitHub Pages
 
-1. Na github.com vytvoř nový repozitář (např. `mini-tovarna`), veřejný.
-2. Nahraj soubory `index.html`, `game.js` a `README.md`
-   (webově: **Add file → Upload files**, nebo přes git:
-   `git init && git add . && git commit -m "první verze" && git branch -M main && git remote add origin https://github.com/TVOJE_JMENO/mini-tovarna.git && git push -u origin main`).
-3. V repozitáři otevři **Settings → Pages**, u *Source* vyber **Deploy from a branch**, větev `main` a složku `/ (root)`, ulož.
-4. Za minutu nebo dvě bude hra na `https://TVOJE_JMENO.github.io/mini-tovarna/`.
-5. Na mobilu otevři odkaz a v prohlížeči zvol **Přidat na plochu**, bude se tvářit jako aplikace.
-
-## Nápady, co přidat dál
-
-- uhlí a palivo do pecí, rozdělovače pásů, vyšší úrovně dolů
-- nepřátelé a obrana, víc receptů, výzkum
-- generování náhodné mapy podle seedu, zvuky
+V repozitáři **Settings → Pages**, *Deploy from a branch*, větev `main`, složka `/ (root)`. Hra pak poběží na `https://jedlink-ops.github.io/tovarna/`.

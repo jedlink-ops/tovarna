@@ -5,54 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1b1f24">
-<title>Mini Továrna</title>
+<meta name="theme-color" content="#1d3a52">
+<title>Zelené Údolí</title>
 <style>
+  :root {
+    --glass: rgba(16, 30, 44, .78);
+    --glass2: rgba(28, 46, 64, .9);
+    --accent: #f5bd4f;
+    --ok: #7bd88f;
+    --bad: #ff8a7a;
+    --text: #f6f2e7;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1f24; color: #e8edf2;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #2b78b5; color: var(--text);
+    font-family: "Nunito", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
-  #hud { position: fixed; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top) + 6px) 8px 6px;
-    background: linear-gradient(#1b1f24ee, #1b1f2400); pointer-events: none; }
-  #inv { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; }
-  #inv span { display: inline-flex; align-items: center; gap: 4px; background: #0008; padding: 2px 7px; border-radius: 10px; }
-  #inv i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  #quest { margin-top: 6px; font-size: 14px; font-weight: 600; text-shadow: 0 1px 2px #000; }
-  #menuBtn { position: fixed; top: calc(env(safe-area-inset-top) + 6px); right: 8px; pointer-events: auto;
-    background: #0008; border: 0; color: #fff; font-size: 18px; border-radius: 10px; padding: 4px 9px; }
-  #toolbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; overflow-x: auto;
-    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px); background: #14181dee; border-top: 1px solid #2c333b; }
-  #toolbar button { flex: 0 0 auto; min-width: 62px; background: #262d35; color: #e8edf2; border: 2px solid transparent;
-    border-radius: 12px; padding: 6px 8px; font-size: 20px; line-height: 1.1; text-align: center; }
-  #toolbar button small { display: block; font-size: 10px; opacity: .8; margin-top: 2px; white-space: nowrap; }
-  #toolbar button.active { border-color: #ffb454; background: #38302a; }
-  #toast { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: #000c; padding: 10px 16px;
-    border-radius: 12px; font-size: 15px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; max-width: 86%; }
+
+  #top { position: fixed; top: 0; left: 0; right: 0; padding: calc(var(--safe-t) + 8px) 8px 0; pointer-events: none;
+    display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  #top > * { pointer-events: auto; }
+  #res { display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 104px); }
+  .pill { background: var(--glass); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border-radius: 999px; padding: 2px 8px 2px 6px; font-size: 13px; font-weight: 800; display: inline-flex; gap: 5px; align-items: center;
+    box-shadow: 0 2px 6px #0004; border: 1px solid #ffffff14; }
+  .pill.full { color: var(--accent); border-color: var(--accent); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  .pill small { font-weight: 700; opacity: .7; font-size: 11px; }
+
+  #levelCard { background: var(--glass); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border-radius: 16px; padding: 8px 10px; max-width: calc(100% - 4px); box-shadow: 0 3px 10px #0005; border: 1px solid #ffffff14; }
+  #lvlHead { font-weight: 900; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  #lvlHead .star { color: var(--accent); }
+  #lvlHead .chev { margin-left: auto; opacity: .6; font-size: 12px; }
+  #goals { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  #levelCard.collapsed #goals { display: none; }
+  .goal { position: relative; overflow: hidden; border-radius: 10px; padding: 3px 9px; font-size: 13px; font-weight: 800;
+    background: #ffffff14; display: inline-flex; gap: 5px; align-items: center; }
+  .goal .fill { position: absolute; left: 0; top: 0; bottom: 0; background: #f5bd4f55; z-index: 0; transition: width .3s; }
+  .goal span { position: relative; z-index: 1; }
+  .goal.done { color: var(--ok); }
+  .goal.done .fill { background: #7bd88f40; }
+
+  #btns { position: fixed; top: calc(var(--safe-t) + 8px); right: 8px; display: flex; gap: 6px; }
+  #btns button { background: var(--glass); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: var(--text);
+    border: 1px solid #ffffff14; border-radius: 12px; padding: 6px 10px; font-size: 15px; font-weight: 800; box-shadow: 0 2px 6px #0004; }
+
+  #sheet { position: fixed; left: 8px; right: 8px; bottom: 100px; background: var(--glass2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: 18px; padding: 10px 12px; box-shadow: 0 4px 16px #0007; border: 1px solid #ffffff1a; display: none; font-size: 14px; line-height: 1.4; }
+  #sheet.show { display: block; }
+  #sheet h3 { margin: 0 0 3px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  #sheet .x { margin-left: auto; background: #ffffff18; border: 0; color: var(--text); border-radius: 10px; width: 30px; height: 30px; font-size: 15px; }
+  #sheet .muted { opacity: .75; }
+  #sheet .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  #sheet button.act { background: #d8584a; color: #fff; border: 0; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 14px; }
+  .chip { display: inline-flex; gap: 3px; background: #ffffff16; border-radius: 8px; padding: 1px 7px; font-weight: 800; font-size: 13px; margin-right: 4px; }
+  .chip.poor { color: var(--bad); }
+
+  #palette { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 7px; overflow-x: auto; padding: 8px 8px calc(var(--safe-b) + 8px);
+    background: linear-gradient(#0000, #0b1722cc 35%); scrollbar-width: none; }
+  #palette::-webkit-scrollbar { display: none; }
+  .card { flex: 0 0 auto; width: 74px; background: var(--glass2); border: 2px solid #ffffff12; border-radius: 16px; padding: 6px 4px 5px;
+    text-align: center; color: var(--text); font-family: inherit; transition: transform .12s, border-color .12s; box-shadow: 0 3px 8px #0005; }
+  .card .em { font-size: 28px; line-height: 1.1; display: block; }
+  .card .nm { font-size: 11px; font-weight: 800; display: block; margin-top: 1px; white-space: nowrap; }
+  .card .cs { font-size: 10px; font-weight: 700; display: block; opacity: .9; margin-top: 1px; min-height: 13px; white-space: nowrap; }
+  .card.sel { border-color: var(--accent); transform: translateY(-5px); background: #3a3a2a; }
+  .card.poor .cs { color: var(--bad); }
+  .card.locked { opacity: .5; filter: grayscale(.7); }
+
+  #toast { position: fixed; left: 50%; top: 24%; transform: translateX(-50%); background: #000c; padding: 10px 16px; border-radius: 14px;
+    font-size: 15px; font-weight: 700; opacity: 0; transition: opacity .25s; pointer-events: none; text-align: center; max-width: 88%; z-index: 20; }
   #toast.show { opacity: 1; }
-  #help { position: fixed; inset: 0; background: #000b; display: none; align-items: center; justify-content: center; padding: 24px; z-index: 5; }
-  #help.show { display: flex; }
-  #help div { background: #20262d; border-radius: 16px; padding: 18px 20px; max-width: 420px; line-height: 1.45; font-size: 15px; }
-  #help h2 { margin: 0 0 8px; font-size: 18px; }
-  #help button { margin-top: 12px; width: 100%; padding: 10px; font-size: 16px; border: 0; border-radius: 10px; background: #ffb454; color: #222; font-weight: 700; }
-  #help .row2 { display: flex; gap: 8px; } #help .row2 button.sec { background: #3a424b; color: #e8edf2; }
+
+  #modal { position: fixed; inset: 0; background: #0009; display: none; align-items: center; justify-content: center; padding: 20px; z-index: 30; }
+  #modal.show { display: flex; }
+  #modalBox { background: linear-gradient(#27435c, #1a2f43); border: 1px solid #ffffff22; border-radius: 22px; padding: 20px 20px 16px; max-width: 420px; width: 100%;
+    max-height: 86vh; overflow: auto; line-height: 1.5; font-size: 15px; box-shadow: 0 10px 40px #000a; }
+  #modalBox h2 { margin: 0 0 8px; font-size: 22px; }
+  #modalBox p { margin: 6px 0; }
+  #modalBox .btns { display: flex; gap: 8px; margin-top: 14px; }
+  #modalBox button { flex: 1; padding: 11px; font-size: 16px; font-weight: 900; border: 0; border-radius: 12px; background: var(--accent); color: #2a2110; font-family: inherit; }
+  #modalBox button.sec { background: #ffffff20; color: var(--text); }
+  #modalBox button.danger { background: #d8584a; color: #fff; }
+  #modalBox .unlock { background: #ffffff12; border-radius: 12px; padding: 8px 10px; margin: 8px 0; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
-  <div id="inv"></div>
-  <div id="quest"></div>
+<div id="top">
+  <div id="res"></div>
+  <div id="levelCard"><div id="lvlHead"></div><div id="goals"></div></div>
 </div>
-<button id="menuBtn">☰</button>
-<div id="toolbar"></div>
+<div id="btns"><button id="speedBtn">⏩ 1×</button><button id="menuBtn">☰</button></div>
+<div id="sheet"></div>
+<div id="palette"></div>
 <div id="toast"></div>
-<div id="help"><div>
-  <h2>🏭 Mini Továrna</h2>
-  <p><b>Cíl:</b> těž rudu, tav ji v pecích, vyráběj ozubená kola a obvody a vozit je pásy do 📦 základny.</p>
-  <p><b>Ovládání:</b> vyber nástroj dole a <b>táhni prstem</b> po mapě. Pásy se kreslí ve směru tažení. Dva prsty = posun a zoom. Nástroj ✋ posouvá mapu, klepnutí na pás ho otočí.</p>
-  <p>⛏️ Důl se musí postavit na rudu (šedomodrá = železo, oranžová = měď). Důl i stroje předávají zboží sousedním pásům a strojům.</p>
-  <div class="row2" id="helpBtns"></div>
-</div></div>
+<div id="modal"><div id="modalBox"></div></div>
 <script src="game.js"></script>
 </body>
 </html>
