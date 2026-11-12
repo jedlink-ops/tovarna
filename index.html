@@ -123,6 +123,10 @@
   #pop button.act.sec { background: #ffffff24; }
   #pop .tail { position: absolute; bottom: -8px; width: 16px; height: 16px; background: var(--glass2); transform: translateX(-50%) rotate(45deg); border-right: 1px solid #ffffff2a; border-bottom: 1px solid #ffffff2a; }
   #pop.below .tail { bottom: auto; top: -8px; transform: translateX(-50%) rotate(225deg); }
+  #act { position: fixed; right: 8px; top: calc(var(--safe-t) + 176px); display: flex; flex-direction: column; gap: 6px; align-items: flex-end; z-index: 5; }
+  #act button { background: var(--glass2); color: var(--text); border: 1px solid #ffffff2a; border-radius: 12px; padding: 7px 11px; font-size: 14px; font-weight: 800; box-shadow: 0 2px 8px #0006; font-family: inherit; }
+  #repairBtn { border-color: var(--bad) !important; color: #ffd0c8 !important; animation: hintp 1s infinite; }
+  #pop button.act.ok { background: #4fa86a; }
   #modalBox .ic { width: 20px; height: 20px; }
 </style>
 </head>
@@ -133,6 +137,7 @@
   <div id="levelCard"><div id="lvlHead"></div><div id="goals"></div></div>
 </div>
 <div id="btns"><button id="speedBtn">⏩ 1×</button><button id="menuBtn">☰</button></div>
+<div id="act"><button id="repairBtn" style="display:none"></button><button id="sleepBtn" style="display:none">🌙 Spát</button></div>
 <div id="sheet"></div>
 <div id="palette"></div>
 <div id="pop"></div>

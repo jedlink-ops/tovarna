@@ -93,6 +93,10 @@
       ell(-11, 0, 4, 6, '#e6c28f', OUT, 1.2); ell(-11, 0, 2, 3.2, '#c99a62');
       line(-5, -2, 8, -2, 'rgba(60,35,15,.4)', 1); line(-6, 2, 7, 2, 'rgba(60,35,15,.4)', 1);
     },
+    meat() {
+      poly([[-12, 3], [-10, -7], [-2, -11], [8, -8], [12, 0], [8, 8], [-4, 9]], lg(-12, -11, 12, 9, [[0, '#ee9a88'], [1, '#b04a3c']]), OUT, 1.4);
+      circ(-3, -1, 3.4, '#f7dccf'); line(6, 5, 13, 11, '#f1e6d0', 3.2); circ(14, 12, 2.2, '#f1e6d0');
+    },
     stone() {
       poly([[-12, 5], [-13, -4], [-5, -11], [5, -11], [13, -3], [11, 6]], lg(-10, -11, 10, 6, [[0, '#d6dbe0'], [1, '#858d95']]), OUT, 1.4);
       poly([[-5, -11], [5, -11], [8, -6], [-3, -4]], 'rgba(255,255,255,.35)');
@@ -328,6 +332,62 @@
       box(14, -9, 10, 8, '#5a4a40', OUT, 1.5, 1.2); circ(17, -1, 2, '#222'); circ(22, -1, 2, '#222');
       poly([[15, -9], [18, -13], [21, -10], [23, -9]], '#e0793c', 'rgba(90,40,15,.7)', 1);
     },
+    tower() {
+      shadow(18, 6, 1, 0.32);
+      box(-13, -54, 26, 54, lg(-13, 0, 13, 0, [[0, '#d6cfbf'], [1, '#8f8878']]), OUT, 2, 1.5);
+      for (let y = -46; y < 0; y += 9) line(-13, y, 13, y, 'rgba(0,0,0,.14)', 1);
+      box(-18, -62, 36, 10, '#a89f8c', OUT, 2, 1.5);
+      for (const x of [-16, -8, 0, 8]) box(x, -71, 8, 9, '#bdb4a1', OUT, 1, 1.2);
+      box(-4, -40, 8, 13, '#2a2a30', OUT, 1, 1); box(-6, -14, 12, 14, '#5a3b22', OUT, 1, 1.2);
+      line(0, -71, 0, -90, '#6a4424', 2); poly([[0, -90], [13, -85], [0, -80]], '#e8584a', OUT, 1);
+    },
+    guard() {
+      cottage({ wall: '#bfae8d', wall2: '#9a8967', roof: '#4a6f95', roof2: '#35526f', chimney: false });
+      poly([[-11, -31], [3, -31], [3, -19], [-4, -12], [-11, -19]], '#d8584a', OUT, 1.2); line(-4, -31, -4, -14, '#f1d36a', 1.6);
+      line(19, -2, 19, -42, '#7a5230', 2.2); poly([[19, -49], [23, -40], [15, -40]], '#d3dae0', OUT, 1);
+    },
+    hunter() {
+      cottage({ wall: '#8e6d46', wall2: '#6c4e2d', roof: '#557f3b', roof2: '#386029', chimney: false });
+      for (const m of [-1, 1]) { line(m * 4, -52, m * 10, -64, '#ece0c0', 2.4); line(m * 10, -64, m * 15, -62, '#ece0c0', 2); line(m * 8, -58, m * 13, -58, '#ece0c0', 1.8); }
+      poly([[14, -22], [22, -22], [22, -8], [18, -4], [14, -8]], '#b9824f', OUT, 1.2);
+      box(-26, -12, 8, 10, '#7a5230', OUT, 1, 1);
+    },
+    well() {
+      shadow(16, 6, 1, 0.3);
+      box(-13, -20, 26, 20, lg(-13, 0, 13, 0, [[0, '#d0c9b9'], [1, '#8f8878']]), OUT, 4, 1.5);
+      ell(0, -20, 11, 5, '#3d94d4', OUT, 1.4); ell(-3, -21, 4, 1.6, 'rgba(255,255,255,.5)');
+      line(-12, -20, -12, -46, '#7a5230', 3); line(12, -20, 12, -46, '#7a5230', 3);
+      poly([[-19, -45], [19, -45], [0, -60]], '#a63e29', OUT, 1.6); line(0, -45, 0, -26, '#e6d8b0', 1.4); box(-3, -28, 6, 6, '#8a5a30', OUT, 1, 1);
+    },
+    port() {
+      shadow(52, 10, 2, 0.3);
+      box(-64, -14, 128, 16, lg(0, -14, 0, 2, [[0, '#cc9d66'], [1, '#8a5a30']]), OUT, 3, 1.6);
+      for (let x = -56; x <= 56; x += 14) line(x, -14, x, 2, 'rgba(60,35,15,.5)', 1.4);
+      box(-56, -36, 22, 22, '#b98550', OUT, 2, 1.4); box(-32, -30, 16, 16, '#d9a869', OUT, 2, 1.4);
+      line(-56, -36, -34, -14, 'rgba(60,35,15,.4)', 1.2);
+      box(12, -54, 48, 40, '#f0e0c0', OUT, 2, 1.5); poly([[7, -54], [65, -54], [48, -80], [24, -80]], '#3f7fb8', OUT, 1.8);
+      box(30, -38, 14, 24, '#5a3b22', OUT, 1, 1.2); circ(36, -56, 3, '#fff');
+      line(-24, -36, -24, -96, '#7a5230', 3); poly([[-24, -92], [2, -70], [-24, -50]], '#fff6dc', OUT, 1.4);
+    },
+    village() {
+      for (const [dx, dy, k, c] of [[-38, 0, 0.72, ['#f8ead0', '#e4cfa6', '#4f8fc7', '#35669a']], [6, 4, 0.82, ['#f1dcc0', '#d9bc92', '#d2603f', '#a63e29']], [46, -2, 0.66, ['#ead9b8', '#cfb487', '#6a9f48', '#487a2f']]]) {
+        G.save(); G.translate(dx, dy); G.scale(k, k); cottage({ wall: c[0], wall2: c[1], roof: c[2], roof2: c[3], chimney: true }); G.restore();
+      }
+      poly([[-60, 2], [62, 2], [48, 10], [-48, 10]], 'rgba(110,80,50,.25)');
+    },
+    castle() {
+      shadow(58, 10, 2, 0.35);
+      box(-52, -52, 104, 52, lg(0, -52, 0, 0, [[0, '#d4cdbd'], [1, '#8c8575']]), OUT, 3, 1.8);
+      for (let y = -42; y < 0; y += 10) line(-52, y, 52, y, 'rgba(0,0,0,.12)', 1);
+      for (let x = -52; x < 52; x += 16) box(x, -62, 11, 11, '#bdb4a1', OUT, 1, 1.2);
+      for (const m of [-1, 1]) {
+        box(m * 56 - 16, -96, 32, 96, lg(0, -96, 0, 0, [[0, '#d9d2c2'], [1, '#8a8373']]), OUT, 3, 1.8);
+        for (let k = -1; k <= 1; k++) box(m * 56 + k * 11 - 4, -106, 8, 11, '#bdb4a1', OUT, 1, 1.2);
+        box(m * 56 - 3, -76, 6, 14, '#2a2a30', OUT, 1, 1);
+      }
+      box(-14, -34, 28, 34, '#3a2a1c', OUT, 2, 1.4); G.beginPath(); G.arc(0, -34, 14, Math.PI, 0); G.fillStyle = '#3a2a1c'; G.fill(); G.strokeStyle = OUT; G.stroke();
+      line(0, -106, 0, -128, '#6a4424', 2.4); poly([[0, -128], [18, -122], [0, -115]], '#e8584a', OUT, 1.2);
+    },
     goldmine() {
       shadow(28, 8, 2, 0.32);
       poly([[-25, 0], [-23, -16], [-12, -30], [2, -35], [16, -29], [24, -14], [26, 0]], lg(-22, -35, 22, 0, [[0, '#d9c488'], [1, '#85703a']]), OUT, 1.7);
@@ -340,7 +400,17 @@
     },
   };
 
-  const ART = { T, S, blit, icon: {}, iconURL: {}, rock: { rock: [], ore: [], gold: [] }, tree: [], bld: {}, thumbs: {} };
+  const TOPS = { farm: -46, quarry: -38, mine: -38, goldmine: -38, well: -62, tower: -92, house: -56 };
+  function deco(lvl, top) {
+    box(-27, -3, 54, 7, lg(0, -3, 0, 4, [[0, '#c2bcae'], [1, '#8a8478']]), OUT, 2, 1.2);
+    const gold = lvl === 3, col = gold ? '#f5bd4f' : '#7bd88f';
+    line(-21, top, -21, top - 17, '#6a4424', 1.8); poly([[-21, top - 17], [-8, top - 12], [-21, top - 7]], col, OUT, 1);
+    if (gold) {
+      line(21, top, 21, top - 17, '#6a4424', 1.8); poly([[21, top - 17], [8, top - 12], [21, top - 7]], col, OUT, 1);
+      circ(-25, -11, 2.8, '#ffe27a'); circ(25, -11, 2.8, '#ffe27a'); line(-23, top + 2, 23, top + 2, 'rgba(255,215,90,.9)', 2.4);
+    } else { circ(-25, -11, 2.2, '#fff0b0'); circ(25, -11, 2.2, '#fff0b0'); }
+  }
+  const ART = { bldV: {}, T, S, blit, icon: {}, iconURL: {}, rock: { rock: [], ore: [], gold: [] }, tree: [], bld: {}, thumbs: {} };
 
   ART.build = function () {
     for (let v = 0; v < 3; v++) {
@@ -352,10 +422,16 @@
       const s = mk(32, 32, 16, 16, ICON[k]);
       ART.icon[k] = s; ART.iconURL[k] = s.c.toDataURL();
     }
-    const big = { hall: [160, 190, 80, 168], monument: [100, 160, 50, 140], farm: [64, 60, 32, 52], splitter: [64, 52, 32, 44] };
+    const big = { port: [170, 150, 85, 134], village: [170, 130, 85, 114], castle: [190, 160, 95, 144], tower: [100, 130, 50, 112], well: [80, 90, 40, 74], hall: [160, 190, 80, 168], monument: [100, 160, 50, 140], farm: [64, 60, 32, 52], splitter: [64, 52, 32, 44] };
     for (const k of Object.keys(BLD)) {
       const d = big[k] || [100, 124, 50, 106];
       ART.bld[k] = mk(d[0], d[1], d[2], d[3], BLD[k]);
+    }
+    const noV = { hall: 1, monument: 1, port: 1, village: 1, castle: 1, splitter: 1 };
+    for (const k of Object.keys(BLD)) {
+      if (noV[k]) continue;
+      const d = big[k] || [100, 124, 50, 106]; ART.bldV[k] = {};
+      for (const lv of [2, 3]) ART.bldV[k][lv] = mk(d[0], d[1], d[2], d[3], () => { BLD[k](); deco(lv, TOPS[k] || -56); });
     }
     // náhledy do palety
     for (const k of Object.keys(BLD)) {

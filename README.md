@@ -17,6 +17,11 @@
 - Přes **řeky** vedou mosty (od levelu 3, stojí prkna). Lesy a skály musíš obejít. Každý další level má těžší terén.
 - 🏠 **Chaloupky**: dělníci bydlí do 6 polí od práce (2 na chaloupku). Klepnutím na chaloupku uvidíš dosah.
 - 🍞 Od levelu 3 chaloupky jedí chléb a ryby (dovezené dopravníkem). Hladoví pracují poloviční rychlostí.
+- 🏗 **Staveniště:** velké stavby (kovárna, dílna, klenotník, zlatý důl, Velký chrám) se nestaví z Radnice. Materiál na ně dovezeš pásem.
+- 🌍 **Vzdálené projekty** na mapě (Přístav, Horská osada, Lesní hrad) spojíš jedním pásem. Dají trvalé bonusy.
+- ⬆ **Vylepšování** budov na 3 stupně (klepni na budovu): rychlejší, odolnější a mění vzhled.
+- 🌙 **Den a noc:** v noci vylézají **vlci** a kazí pásy a budovy (oprava 🔧). Brání **Strážní věž**, **Hlídka** a **Myslivec** (loví i zvěřinu). Noc přeskočí tlačítko 🌙 Spát.
+- 🌧️🔥 **Události:** povodeň poškodí pásy a stavby na březích, požár se šíří a hasí ho studna nebo klepání.
 - Levely se plní **dodáním** surovin do Radnice/skladu a stavbami. Cíl: **Velký chrám**.
 
 ## Spuštění
