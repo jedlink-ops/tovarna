@@ -47,3 +47,6 @@ Settings → Pages → *Deploy from a branch* → `main` / `(root)`. Hra pak bě
 
 ## Hloubka (2.5D)
 Skály, rudy a zlato mají boční stěny jako vyvýšené bloky, budovy, stromy a kameny vrhají stíny podle denní doby (ráno vlevo, večer vpravo, v noci mizí), koruny stromů se houpají ve větru a obraz má jemný vzdušný opar nahoře a teplé světlo dole.
+
+## Bonus: automat
+`automat/index.html` – ovocný výherní automat „Ovocný Respin 81" (4 válce × 3 řádky, 81 výherních cest, joker se zamyká jako wild válec a spouští respin, riziko na zdvojnásobení). Pouze virtuální kredity. Spuštění: `…/tovarna/automat/`.
