@@ -147,26 +147,60 @@ const S = { credit: 5000, bet: 20, win: 0, pending: 0, auto: false, fast: false,
 try { const d = JSON.parse(localStorage.getItem('automat81') || 'null'); if (d) { S.credit = d.credit; S.bet = BETS.includes(d.bet) ? d.bet : 20; S.sound = d.sound !== false; S.fast = !!d.fast; } } catch (e) {}
 function save() { try { localStorage.setItem('automat81', JSON.stringify({ credit: S.credit, bet: S.bet, sound: S.sound, fast: S.fast })); } catch (e) {} }
 
-// ===================== ZVUK =====================
-let AC = null;
-function tone(f, d, type, vol, when) {
+// ===================== ZVUK (jemné zvonky, dozvuk, kompresor) =====================
+let AC = null, MASTER = null, REV = null, NOISE = null;
+function audio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return AC; }
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4; comp.connect(AC.destination);
+  MASTER = AC.createGain(); MASTER.gain.value = 0.55; MASTER.connect(comp);
+  const d = AC.createDelay(); d.delayTime.value = 0.11; const fb = AC.createGain(); fb.gain.value = 0.38; const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+  REV = AC.createGain(); REV.gain.value = 0.4; REV.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(comp);
+  const len = AC.sampleRate * 1; NOISE = AC.createBuffer(1, len, AC.sampleRate); const ch = NOISE.getChannelData(0); for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+  return AC;
+}
+function env(g, t, a, d, vol) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+// zvonek: základní tón + nesouměrná harmonická = skleněný „ding"
+function bell(f, when, vol, dur) {
   if (!S.sound) return;
   try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const t = AC.currentTime + (when || 0), o = AC.createOscillator(), g = AC.createGain();
-    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
-    g.gain.setValueAtTime(vol || 0.08, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
+    audio(); const t = AC.currentTime + (when || 0), d = dur || 0.9, g = AC.createGain(); g.connect(MASTER); g.connect(REV);
+    env(g, t, 0.004, d, vol || 0.12);
+    for (const [m, v, dd] of [[1, 1, 1], [2.756, 0.28, 0.45], [5.4, 0.1, 0.2], [0.5, 0.35, 0.8]]) { const o = AC.createOscillator(), og = AC.createGain(); o.type = 'sine'; o.frequency.value = f * m; og.gain.setValueAtTime(v, t); og.gain.exponentialRampToValueAtTime(0.001, t + d * dd); o.connect(og); og.connect(g); o.start(t); o.stop(t + d + 0.05); }
   } catch (e) {}
 }
+function thump(when, vol, f0) {
+  if (!S.sound) return;
+  try {
+    audio(); const t = AC.currentTime + (when || 0), o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f0 || 150, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.13);
+    env(g, t, 0.003, 0.16, vol || 0.35); o.connect(g); g.connect(MASTER); o.start(t); o.stop(t + 0.25);
+    const n = AC.createBufferSource(), nf = AC.createBiquadFilter(), ng = AC.createGain(); n.buffer = NOISE; nf.type = 'bandpass'; nf.frequency.value = 1800; nf.Q.value = 0.8; env(ng, t, 0.002, 0.05, (vol || 0.35) * 0.35); n.connect(nf); nf.connect(ng); ng.connect(MASTER); n.start(t); n.stop(t + 0.1);
+  } catch (e) {}
+}
+function whoosh(when, dur, vol, up) {
+  if (!S.sound) return;
+  try {
+    audio(); const t = AC.currentTime + (when || 0), n = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); n.buffer = NOISE; n.loop = true; f.type = 'bandpass'; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(up ? 300 : 1800, t); f.frequency.exponentialRampToValueAtTime(up ? 2400 : 250, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.12, t + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f); f.connect(g); g.connect(MASTER); n.start(t); n.stop(t + dur + 0.05);
+  } catch (e) {}
+}
+const PENT = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.7, 1318.5];
 const sfx = {
-  tick: () => tone(180, 0.07, 'square', 0.05),
-  stop: r => { tone(260 + r * 40, 0.09, 'triangle', 0.1); },
-  win: n => { for (let i = 0; i < Math.min(8, 3 + n); i++) tone(520 * Math.pow(1.122, i * 2), 0.18, 'triangle', 0.09, i * 0.08); },
-  big: () => { for (let i = 0; i < 12; i++) tone(440 * Math.pow(1.0595, [0, 4, 7, 12][i % 4] + (i / 4 | 0) * 2), 0.22, 'square', 0.06, i * 0.09); },
-  joker: () => { tone(880, 0.12, 'sawtooth', 0.07); tone(1175, 0.2, 'sawtooth', 0.07, 0.1); tone(1568, 0.3, 'sawtooth', 0.07, 0.2); },
-  lose: () => tone(150, 0.25, 'sawtooth', 0.07),
-  btn: () => tone(420, 0.05, 'triangle', 0.06),
+  tick: () => {},
+  start: () => { whoosh(0, 0.5, 0.1, true); thump(0, 0.12, 220); },
+  respin: () => { whoosh(0, 0.4, 0.1, true); },
+  stop: r => thump(0, 0.3, 170 - r * 12),
+  win: n => { const k = Math.min(6, 3 + n); for (let i = 0; i < k; i++) bell(PENT[i], i * 0.085, 0.11, 0.8); },
+  big: () => {
+    for (let i = 0; i < 8; i++) bell(PENT[i], i * 0.075, 0.12, 1.1);
+    [523.25, 659.25, 783.99, 1046.5].forEach(f => bell(f, 0.7, 0.1, 1.6));
+    for (let i = 0; i < 14; i++) bell(1568 * (1 + (i % 3) * 0.335), 0.9 + i * 0.07, 0.05, 0.4);
+  },
+  joker: () => { whoosh(0, 0.45, 0.09, true); [1318.5, 1568, 2093, 2637].forEach((f, i) => bell(f, 0.12 + i * 0.07, 0.08, 0.9)); },
+  lose: () => { bell(329.63, 0, 0.07, 0.5); bell(261.63, 0.12, 0.07, 0.7); },
+  btn: () => bell(1568, 0, 0.04, 0.12),
 };
 
 // ===================== VÁLCE A KRESLENÍ =====================
@@ -181,56 +215,75 @@ function resize() {
 
 // ===================== VEKTOROVÉ SYMBOLY (bez emoji fontu – funguje všude) =====================
 const SPR = [];
-function ball(g, x, y, r, c1, c2) {
-  const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+const ol = (g, c, w) => { g.strokeStyle = c; g.lineWidth = w; g.lineJoin = 'round'; g.lineCap = 'round'; };
+function ball(g, x, y, r, c1, c2, edge) {
+  const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .08, x, y, r * 1.05); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
   g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill();
-  g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(x - r * .4, y - r * .45, r * .24, r * .13, -.7, 0, 6.3); g.fill();
+  if (edge) { ol(g, edge, 2.6); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,.78)'; g.beginPath(); g.ellipse(x - r * .38, y - r * .45, r * .27, r * .14, -.7, 0, 6.3); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.28)'; g.beginPath(); g.arc(x + r * .44, y + r * .46, r * .12, 0, 6.3); g.fill();
 }
-function leaf(g, x, y, dx, dy, col) { g.fillStyle = col || '#4caf3a'; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + dx * .7, y - dy, x + dx, y + dy * .1); g.quadraticCurveTo(x + dx * .3, y + dy * .5, x, y); g.fill(); }
+function leaf(g, x, y, dx, dy) {
+  const gr = g.createLinearGradient(x, y - dy, x + dx, y + dy); gr.addColorStop(0, '#8be050'); gr.addColorStop(1, '#2e8a2a');
+  g.fillStyle = gr; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + dx * .5, y - dy * 1.3, x + dx, y); g.quadraticCurveTo(x + dx * .5, y + dy * .9, x, y); g.fill(); ol(g, '#1f5a1c', 2); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x + dx * .08, y); g.lineTo(x + dx * .85, y - 1); g.stroke();
+}
+function star5(g, R, r) { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; g.lineTo(Math.cos(a) * q, Math.sin(a) * q); } g.closePath(); }
 const SPRITES = {
   cherry(g) {
-    g.strokeStyle = '#5a8a2a'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(30, 66); g.quadraticCurveTo(38, 34, 62, 14); g.moveTo(68, 70); g.quadraticCurveTo(66, 36, 62, 14); g.stroke();
-    leaf(g, 62, 14, 28, 14); ball(g, 30, 70, 20, '#ff6a7e', '#b0102a'); ball(g, 69, 74, 20, '#ff6a7e', '#b0102a');
+    for (const [w, c] of [[5, '#3f5a14'], [2.2, '#9fd04a']]) { ol(g, c, w); g.beginPath(); g.moveTo(30, 64); g.quadraticCurveTo(36, 32, 60, 14); g.moveTo(70, 68); g.quadraticCurveTo(66, 34, 60, 14); g.stroke(); }
+    leaf(g, 60, 15, 30, 13);
+    ball(g, 30, 70, 21, '#ff8294', '#a50d28', '#64051a'); ball(g, 70, 74, 21, '#ff8294', '#a50d28', '#64051a');
   },
   lemon(g) {
-    g.save(); g.translate(50, 54); g.rotate(-.4);
-    const gr = g.createLinearGradient(0, -28, 0, 28); gr.addColorStop(0, '#fff06a'); gr.addColorStop(1, '#e6b400');
-    g.fillStyle = gr; g.strokeStyle = '#b58a00'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(-44, 0); g.quadraticCurveTo(-32, -32, 0, -29); g.quadraticCurveTo(32, -32, 44, 0); g.quadraticCurveTo(32, 32, 0, 29); g.quadraticCurveTo(-32, 32, -44, 0); g.fill(); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(-12, -14, 14, 5, -.2, 0, 6.3); g.fill(); g.restore();
-    leaf(g, 76, 40, 18, 14);
+    g.save(); g.translate(48, 56); g.rotate(-.35);
+    const gr = g.createLinearGradient(0, -30, 0, 30); gr.addColorStop(0, '#fff582'); gr.addColorStop(.7, '#f6cf10'); gr.addColorStop(1, '#d9a500');
+    g.beginPath(); g.moveTo(-42, 0); g.quadraticCurveTo(-32, -33, 0, -30); g.quadraticCurveTo(32, -33, 42, 0); g.quadraticCurveTo(32, 33, 0, 30); g.quadraticCurveTo(-32, 33, -42, 0); g.closePath();
+    g.fillStyle = gr; g.fill(); ol(g, '#8a6400', 3); g.stroke();
+    for (const sx of [-1, 1]) { g.fillStyle = '#f2c400'; g.beginPath(); g.ellipse(sx * 44, 0, 6, 4.5, 0, 0, 6.3); g.fill(); g.stroke(); }
+    g.fillStyle = 'rgba(190,130,0,.22)'; g.beginPath(); g.ellipse(4, 20, 30, 7, 0, 0, 6.3); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(-12, -15, 16, 5.5, -.15, 0, 6.3); g.fill(); g.restore();
+    leaf(g, 72, 38, 22, 11);
   },
   orange(g) {
-    ball(g, 50, 58, 34, '#ffc062', '#e2640a');
-    g.fillStyle = 'rgba(160,60,0,.25)'; for (const [x, y] of [[36, 62], [54, 72], [62, 52], [44, 48], [68, 66], [30, 50]]) { g.beginPath(); g.arc(x, y, 1.6, 0, 6.3); g.fill(); }
-    g.strokeStyle = '#6a4a1a'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(50, 26); g.lineTo(50, 18); g.stroke(); leaf(g, 51, 22, 26, 14);
+    ball(g, 50, 58, 35, '#ffcb70', '#e55a06', '#933800');
+    g.fillStyle = 'rgba(140,50,0,.22)'; for (const [x, y] of [[34, 64], [52, 76], [66, 52], [42, 48], [70, 68], [28, 52], [58, 40]]) { g.beginPath(); g.arc(x, y, 1.7, 0, 6.3); g.fill(); }
+    g.fillStyle = '#3f8a2a'; g.beginPath(); g.ellipse(50, 25, 9, 3.6, 0, 0, 6.3); g.fill(); ol(g, '#1f5a1c', 1.6); g.stroke();
+    ol(g, '#5a3a14', 3.4); g.beginPath(); g.moveTo(50, 24); g.lineTo(52, 15); g.stroke(); leaf(g, 53, 18, 28, 13);
   },
   grape(g) {
-    g.strokeStyle = '#6a4a1a'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(50, 24); g.lineTo(52, 10); g.stroke(); leaf(g, 52, 12, 30, 14);
-    for (const [x, y] of [[28, 38], [50, 36], [72, 38], [38, 56], [62, 56], [50, 76]]) ball(g, x, y, 14, '#c49af8', '#5a2a9a');
-    ball(g, 50, 56, 14, '#c49af8', '#5a2a9a'); ball(g, 50, 76, 13, '#c49af8', '#5a2a9a');
+    ol(g, '#5a3a14', 4); g.beginPath(); g.moveTo(50, 22); g.quadraticCurveTo(52, 14, 56, 8); g.stroke(); leaf(g, 55, 10, 32, 14);
+    for (const [x, y] of [[30, 38], [50, 33], [70, 38], [40, 54], [60, 54], [50, 70]]) ball(g, x, y, 15, '#d2adff', '#4a1a8a', '#2a0b52');
+    ball(g, 50, 47, 14, '#d2adff', '#4a1a8a', '#2a0b52');
   },
   melon(g) {
-    g.save(); g.translate(50, 34);
-    g.fillStyle = '#2e9a3a'; g.beginPath(); g.arc(0, 0, 47, 0, Math.PI); g.closePath(); g.fill();
-    g.fillStyle = '#eef8c8'; g.beginPath(); g.arc(0, 0, 41, 0, Math.PI); g.closePath(); g.fill();
-    const gr = g.createLinearGradient(0, 0, 0, 38); gr.addColorStop(0, '#ff6a7a'); gr.addColorStop(1, '#e02a44'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 36, 0, Math.PI); g.closePath(); g.fill();
-    g.fillStyle = '#2a1a1a'; for (const [x, y, a] of [[-18, 14, .5], [0, 22, 0], [18, 14, -.5], [-8, 8, .3], [10, 9, -.3], [-26, 5, .8], [26, 5, -.8]]) { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 2.6, 4.2, 0, 0, 6.3); g.fill(); g.restore(); }
+    g.save(); g.translate(50, 30);
+    const arc = r => { g.beginPath(); g.arc(0, 0, r, 0, Math.PI); g.closePath(); };
+    const rind = g.createLinearGradient(-40, 0, 40, 0); rind.addColorStop(0, '#1d7a2a'); rind.addColorStop(.5, '#3cb54a'); rind.addColorStop(1, '#1d7a2a');
+    arc(48); g.fillStyle = rind; g.fill(); ol(g, '#0f4a18', 3.4); g.stroke();
+    g.strokeStyle = 'rgba(10,60,20,.35)'; g.lineWidth = 3; for (const a of [.5, .95, 1.4, 1.85, 2.3, 2.7]) { g.beginPath(); g.arc(0, 0, 46, a - .12, a + .12); g.stroke(); }
+    arc(41); g.fillStyle = '#f6fbd4'; g.fill();
+    const fl = g.createRadialGradient(-10, 8, 4, 0, 10, 40); fl.addColorStop(0, '#ff7e8c'); fl.addColorStop(1, '#df2640'); arc(36); g.fillStyle = fl; g.fill();
+    g.fillStyle = '#2a1414'; for (const [x, y, a] of [[-20, 15, .6], [0, 24, 0], [20, 15, -.6], [-9, 8, .3], [10, 8, -.3], [-27, 5, .9], [27, 5, -.9]]) { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 2.7, 4.4, 0, 0, 6.3); g.fill(); g.restore(); }
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.arc(0, 0, 30, 2.3, 2.9); g.stroke();
     g.restore();
   },
   star(g) {
-    g.save(); g.translate(50, 54); g.beginPath();
-    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 19 : 44; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath();
-    const gr = g.createLinearGradient(0, -44, 0, 40); gr.addColorStop(0, '#fff3a0'); gr.addColorStop(1, '#f5a500'); g.fillStyle = gr; g.strokeStyle = '#c77b00'; g.lineWidth = 4; g.lineJoin = 'round'; g.fill(); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(-8, -14, 9, 4, -.9, 0, 6.3); g.fill(); g.restore();
+    g.save(); g.translate(50, 54);
+    star5(g, 45, 21); ol(g, '#8a4a00', 9); g.stroke();
+    const gr = g.createLinearGradient(0, -45, 0, 42); gr.addColorStop(0, '#fff8b0'); gr.addColorStop(.55, '#ffcb2a'); gr.addColorStop(1, '#f08a00'); star5(g, 45, 21); g.fillStyle = gr; g.fill();
+    g.save(); g.scale(.62, .62); star5(g, 45, 21); g.fillStyle = 'rgba(255,255,255,.3)'; g.fill(); g.restore();
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(-10, -20, 9, 3.6, -1, 0, 6.3); g.fill(); g.restore();
   },
   seven(g) {
-    g.font = '900 92px "Arial Black", Impact, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
-    g.lineWidth = 12; g.strokeStyle = '#5a0a14'; g.strokeText('7', 50, 82);
-    g.lineWidth = 5; g.strokeStyle = '#ffd166'; g.strokeText('7', 50, 82);
-    const gr = g.createLinearGradient(0, 10, 0, 82); gr.addColorStop(0, '#ff6a7a'); gr.addColorStop(1, '#c4101e'); g.fillStyle = gr; g.fillText('7', 50, 82);
+    g.font = '900 96px "Arial Black", Impact, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+    g.lineWidth = 15; g.strokeStyle = '#4a0610'; g.strokeText('7', 50, 84);
+    g.lineWidth = 7; g.strokeStyle = '#ffd24a'; g.strokeText('7', 50, 84);
+    const gr = g.createLinearGradient(0, 8, 0, 84); gr.addColorStop(0, '#ff7a8a'); gr.addColorStop(.5, '#e0182c'); gr.addColorStop(1, '#a00a1a'); g.fillStyle = gr; g.fillText('7', 50, 84);
+    g.globalCompositeOperation = 'source-atop'; const sh = g.createLinearGradient(0, 8, 0, 52); sh.addColorStop(0, 'rgba(255,255,255,.55)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = sh; g.fillRect(0, 0, 100, 52); g.globalCompositeOperation = 'source-over';
   },
   joker(g) {
-    g.fillStyle = '#fffdf4'; g.strokeStyle = '#8a7a50'; g.lineWidth = 2.5; rrG(g, 15, 5, 70, 90, 9); g.fill(); g.stroke();
+    g.fillStyle = '#fffdf4'; ol(g, '#b8902c', 3.5); rrG(g, 15, 5, 70, 90, 9); g.fill(); g.stroke();
     g.fillStyle = '#e4415a'; g.beginPath(); g.moveTo(25, 46); g.quadraticCurveTo(14, 28, 24, 15); g.lineTo(44, 40); g.fill();
     g.fillStyle = '#3a8fe8'; g.beginPath(); g.moveTo(75, 46); g.quadraticCurveTo(86, 28, 76, 15); g.lineTo(56, 40); g.fill();
     g.fillStyle = '#ffc93a'; g.beginPath(); g.moveTo(36, 42); g.quadraticCurveTo(44, 22, 50, 10); g.quadraticCurveTo(56, 22, 64, 42); g.fill();
@@ -239,14 +292,18 @@ const SPRITES = {
     g.fillStyle = '#ffd9b0'; g.beginPath(); g.arc(50, 62, 15, 0, 6.3); g.fill();
     g.fillStyle = '#222'; g.beginPath(); g.arc(44, 59, 1.9, 0, 6.3); g.arc(56, 59, 1.9, 0, 6.3); g.fill();
     g.strokeStyle = '#c4102a'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.arc(50, 63, 7, .2, Math.PI - .2); g.stroke();
-    g.fillStyle = '#e4415a'; g.beginPath(); g.arc(40, 66, 3, 0, 6.3); g.arc(60, 66, 3, 0, 6.3); g.globalAlpha = .45; g.fill(); g.globalAlpha = 1;
+    g.fillStyle = 'rgba(228,65,90,.45)'; g.beginPath(); g.arc(40, 66, 3, 0, 6.3); g.arc(60, 66, 3, 0, 6.3); g.fill();
     g.fillStyle = '#7a3ac0'; g.beginPath(); for (let i = 0; i < 6; i++) { g.lineTo(26 + i * 9.6, 80); g.lineTo(31 + i * 9.6, 90); } g.lineTo(80, 80); g.fill();
   },
 };
 function rrG(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
 function makeSprites() {
   const Sz = Math.max(16, Math.round(cw * dpr));
-  SYMS.forEach((sy, i) => { const c = document.createElement('canvas'); c.width = c.height = Sz; const g = c.getContext('2d'); g.scale(Sz / 100, Sz / 100); SPRITES[sy.id](g); SPR[i] = c; });
+  SYMS.forEach((sy, i) => {
+    const t = document.createElement('canvas'); t.width = t.height = Sz; const tg = t.getContext('2d'); tg.scale(Sz / 100, Sz / 100); SPRITES[sy.id](tg);
+    const c = document.createElement('canvas'); c.width = c.height = Sz; const g = c.getContext('2d');
+    g.shadowColor = 'rgba(50,15,0,.38)'; g.shadowBlur = Sz * 0.05; g.shadowOffsetY = Sz * 0.035; const m = Sz * 0.05; g.drawImage(t, m, m, Sz - 2 * m, Sz - 2 * m); SPR[i] = c;
+  });
 }
 const reels = [];
 for (let r = 0; r < COLS; r++) {
@@ -376,7 +433,7 @@ function startSpin() {
   if (S.credit < S.bet) { if (S.credit >= BETS[0]) { S.bet = [...BETS].reverse().find(b => b <= S.credit); ui(); } else { broke(); return; } }
   setCredit(S.credit - S.bet); S.respins = 0; winCells = new Set(); shown.win = 0; S.pending = 0;
   for (const R of reels) { R.locked = false; }
-  msg(''); S.state = 'spinning'; sfx.btn(); spinReels(false); ui();
+  msg(''); S.state = 'spinning'; sfx.start(); spinReels(false); ui();
 }
 function spinReels(isRespin) {
   const now = performance.now(); let n = 0;
@@ -403,7 +460,7 @@ function afterStop() {
   if (added && S.respins < MAX_RESPINS && !reels.every(R => R.locked)) {
     S.respins++; S.state = 'respin'; shake = 0.6; banner = { txt: 'RESPIN!', sub: `joker ${S.respins}/${MAX_RESPINS}`, col: '#d98cff', t: 0, d: 0.9 };
     msg('🃏 Joker se zamkl jako wild válec – ostatní se roztočí znovu!'); ui();
-    later(950, () => { S.state = 'respin'; spinReels(true); ui(); }); return;
+    later(950, () => { S.state = 'respin'; sfx.respin(); spinReels(true); ui(); }); return;
   }
   finish();
 }
@@ -514,7 +571,7 @@ $('info').onclick = showRules;
 document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); $('spin').click(); } });
 window.addEventListener('resize', resize);
 resize(); ui(); requestAnimationFrame(frame);
-window.__slot = { S, reels, startSpin, evaluate, playRound, stopNow };
+window.__slot = { sfx, S, reels, startSpin, evaluate, playRound, stopNow };
 })();
 </script>
 </body>
