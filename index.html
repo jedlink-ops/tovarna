@@ -28,7 +28,7 @@ button.p{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:60
 .row.sel{border-color:var(--acc)}
 .rh{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-bottom:6px;cursor:pointer}
 .rail{overflow-x:auto;display:flex;min-height:180px;background:repeating-linear-gradient(90deg,transparent 0 43px,var(--line) 43px 44px);padding-bottom:4px}
-.dev{flex:none;padding:0;border:0;background:none;border-radius:4px;line-height:0}.dev canvas{display:block}
+.dev{flex:none;padding:0;border:0;background:none;border-radius:4px;line-height:0}.dev canvas{display:block;filter:drop-shadow(1.5px 2.5px 2px rgba(0,0,0,.35))}
 .rec{color:#2b6cb0}@media(prefers-color-scheme:dark){.rec{color:#7cb3ef}}
 .dev.sel{outline:3px solid var(--acc);outline-offset:-3px}
 #msg{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:20px;display:none;z-index:5;max-width:90%}
@@ -58,8 +58,9 @@ header.brand{background:#fff;border-bottom:1px solid #e3e7ee;padding:10px 14px;d
 #chk{position:absolute;top:0;right:calc(50% - 26px);font-size:10px;min-width:17px;padding:1px 5px;border-radius:9px;color:#fff;background:#d33a2c;font-weight:700;font-style:normal}#chk.w{background:var(--wrn)}#chk:empty{display:none}
 .next{display:block;width:100%;margin-top:16px;padding:12px}
 .tpl{margin-bottom:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}.tpl button{text-align:left;padding:10px}.tpl b{display:block;color:var(--acc)}.tpl .own{position:relative}.tpl .del{position:absolute;top:4px;right:4px;padding:2px 8px;font-size:13px;border:none;background:transparent;color:var(--mut)}.tpl small{color:var(--mut);font-size:12px}
-.enc{background:linear-gradient(#f2f3f5,#e4e7ea);border:4px solid #cdd2d8;border-radius:18px;padding:12px 8px;box-shadow:inset 0 3px 10px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.08)}
-@media(prefers-color-scheme:dark){.enc{background:linear-gradient(#2a313b,#222831);border-color:#3a4350}.enc .rh{color:#aeb6c1}}
+.enc{background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 2px,rgba(0,0,0,.025) 2px 5px),linear-gradient(160deg,#d3d7db,#bfc4c9 55%,#cdd1d5);border:4px solid #cdd2d8;border-radius:18px;padding:12px 8px;box-shadow:inset 0 3px 10px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.08)}
+@media(prefers-color-scheme:dark){.enc{border-color:#3a4350}.enc .rh{color:#2d343c}}
+.enc .rh{color:#3c444d}
 .catpick b{display:block;margin-bottom:6px;color:var(--acc,#3b86de)}details.manual summary{cursor:pointer;padding:8px 0;color:#667085;font-weight:600}
 .enc.cover{background:linear-gradient(#fbfbf9,#efefeb);border-color:#d5d7d4}.enc.cover .npe{display:none}
 .enc .row{border-color:transparent}.enc .row.sel{border-color:var(--acc);background:rgba(59,134,222,.06)}
@@ -440,8 +441,7 @@ function autowire(){
 function buses(r){const s=new Set();let i=0;
  while(i<r.length){const d=r[i];if(!d.from||!['j1','j3'].includes(d.k)){i++;continue}
   let j=i;while(j+1<r.length&&r[j+1].from===d.from&&['j1','j3'].includes(r[j+1].k))j++;
-  const left=i>0&&r[i-1].tag===d.from;
-  if(j>i||left)for(let k=left?i-1:i;k<=j;k++)s.add(r[k]);
+  if(j>i)for(let k=i;k<=j;k++)s.add(r[k]);
   i=j+1}
  return s}
 /* kreslení přístroje (obrazovka i PDF) */
@@ -452,6 +452,7 @@ function screw(c,x,y,r){c.beginPath();c.arc(x,y,r,0,7);c.fillStyle='#c7c9c9';c.f
  c.beginPath();c.moveTo(x-r*.65,y);c.lineTo(x+r*.65,y);c.moveTo(x,y-r*.65);c.lineTo(x,y+r*.65);c.strokeStyle='#5d5f60';c.lineWidth=r/3;c.stroke()}
 function lin(c,x0,y0,x1,y1,stops){const g=c.createLinearGradient(x0,y0,x1,y1);stops.forEach(([p,col])=>g.addColorStop(p,col));return g}
 /* realistická kresba modulového přístroje 18 × 90 mm (jednotky: výška = 180) */
+const BST={Noark:{l:'#1d5fa8'},Eaton:{l:'#1f2a44'},ABB:{l:'#e2001a',g:1},OEZ:{l:'#d6001c'},Schrack:{l:'#c8102e'},Hager:{l:'#0b4c8c',g:1},'Schneider Electric':{l:'#3dcd58'},Siemens:{l:'#009999',g:1},Legrand:{l:'#d0021b'}};
 const LOOK={j1:'mcb',j3:'mcb',rcd2:'rcd',rcd4:'rcd',rcbo:'rcbo',v1:'isol',v3:'isol',spd:'spd',km:'km',ka:'km',xs:'xs',o:'mcb'};
 function screwAt(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.4,cy-r*.4,r*.1,cx,cy,r);g.addColorStop(0,'#fdfdfd');g.addColorStop(.55,'#c6cacd');g.addColorStop(1,'#7e858a');
  c.beginPath();c.arc(cx,cy,r*1.35,0,7);c.fillStyle='#2f3337';c.fill();c.beginPath();c.arc(cx,cy,r,0,7);c.fillStyle=g;c.fill();
@@ -463,21 +464,24 @@ function drawDev(c,d,x,y,w,h,bus,o={}){
   else{c.fillStyle=lin(c,0,Y(46),0,Y(134),[[0,'#f9f9f7'],[1,'#ecedeb']]);c.fillRect(x,Y(46),w,88*u);c.strokeStyle='rgba(0,0,0,.08)';c.lineWidth=.8*u;for(let i=1;i<mods;i++){c.beginPath();c.moveTo(x+pw*i,Y(48));c.lineTo(x+pw*i,Y(132));c.stroke()}}
   c.restore();return}
  /* tělo + svorky */
- body(1,179,['#d7d9da','#efefec','#cdd0d2']);
+ const bs=BST[d.brand]||{},GR=bs.g;
+ rr(c,x+.6*u,Y(1),w-1.2*u,178*u,3*u,lin(c,x,0,x+w,0,GR?[[0,'#b9bdc1'],[.05,'#d8dbde'],[.5,'#dfe2e4'],[.95,'#ccd0d3'],[1,'#a6abb0']]:[[0,'#c9ccce'],[.05,'#f2f2ef'],[.5,'#f8f8f6'],[.95,'#e4e6e6'],[1,'#b8bcbf']]),'rgba(60,66,72,.6)');
+ c.fillStyle='rgba(0,0,0,.06)';for(let i=0;i<mods;i++){const x0=x+pw*i;[[34,44],[136,146]].forEach(([a,b])=>{for(let k=0;k<3;k++)c.fillRect(x0+pw*(.2+k*.25),Y(a),pw*.08,(b-a)*u)})}
  for(let i=0;i<mods;i++){const cx=x+pw*(i+.5);
   [[4,'t'],[167,'b']].forEach(([yy])=>{c.fillStyle='#3a3f44';c.fillRect(cx-pw*.28,Y(yy),pw*.56,8*u)});
   screwAt(c,cx,Y(26),Math.min(6.2*u,pw*.17));screwAt(c,cx,Y(154),Math.min(6.2*u,pw*.17));
   c.fillStyle='#7d8489';c.font=F(5.2*u,true);c.textAlign='center';c.fillText(String(i*2+1),cx,Y(41));c.fillText(String(i*2+2),cx,Y(143))}
  /* čelo 45 mm */
- const hump=lk==='spd'?['#d4d7da','#e8eaec','#c9cdd1']:['#e9eaea','#fdfdfc','#e1e3e4'];
+ const hump=lk==='spd'?['#d4d7da','#e8eaec','#c9cdd1']:GR?['#cfd2d5','#e6e8ea','#c4c8cb']:['#e9eaea','#fdfdfc','#e1e3e4'];
  rr(c,x+1.4*u,Y(46),w-2.8*u,88*u,3*u,lin(c,x,0,x+w,0,[[0,hump[0]],[.06,hump[1]],[.94,hump[1]],[1,hump[2]]]),'rgba(60,66,72,.45)');
  c.fillStyle='rgba(255,255,255,.7)';c.fillRect(x+3*u,Y(47),w-6*u,1.2*u);c.fillStyle='rgba(0,0,0,.08)';c.fillRect(x+2*u,Y(132),w-4*u,1.6*u);
- const brand=(d.brand||'').toUpperCase();if(brand)tx(c,brand,x+w/2,Y(54),w-6*u,4.6*u,true,'#8a9096');
+ const brand=(d.brand||'').toUpperCase();if(brand)tx(c,brand==='SCHNEIDER ELECTRIC'?'SCHNEIDER':brand,x+w/2,Y(54),w-6*u,mods===1?4.8*u:5.6*u,true,bs.l||'#8a9096');
  const rating=k==='spd'?(d.t||'T2'):d.ch?d.ch+d.a:d.a?d.a+' A':'';
- const toggle=(col,top,ht,wide)=>{const lw=mods===1?pw*.46:Math.min(w-14*u,mods*pw*(wide?.78:.7)),lx=x+w/2-lw/2;
-  rr(c,lx-2.4*u,Y(top),lw+4.8*u,ht*u,2.4*u,lin(c,0,Y(top),0,Y(top+ht),[[0,'#1d2023'],[1,'#3b4045']]),null);
-  rr(c,lx,Y(top+1),lw,ht*.52*u,2*u,lin(c,0,Y(top+1),0,Y(top+1+ht*.52),[[0,col[0]],[.45,col[1]],[1,col[2]]]),'rgba(0,0,0,.45)');
-  c.fillStyle='rgba(255,255,255,.45)';c.fillRect(lx+1.4*u,Y(top+2),lw-2.8*u,1.2*u);
+ const toggle=(col,top,ht,wide)=>{const lw=mods===1?pw*.5:Math.min(w-14*u,mods*pw*(wide?.78:.7)),lx=x+w/2-lw/2;
+  rr(c,lx-2.6*u,Y(top),lw+5.2*u,ht*u,2.6*u,lin(c,0,Y(top),0,Y(top+ht),[[0,'#0f1113'],[.5,'#24282c'],[1,'#3e444a']]),null);
+  c.fillStyle='rgba(0,0,0,.35)';c.fillRect(lx-1*u,Y(top+ht*.52+1),lw+2*u,2.2*u);
+  rr(c,lx,Y(top+.8),lw,ht*.54*u,2.2*u,lin(c,lx,0,lx+lw,0,[[0,col[2]],[.18,col[0]],[.55,col[1]],[1,col[2]]]),'rgba(0,0,0,.55)');
+  c.fillStyle=lin(c,0,Y(top+1),0,Y(top+6),[[0,'rgba(255,255,255,.55)'],[1,'rgba(255,255,255,0)']]);c.fillRect(lx+1*u,Y(top+1.2),lw-2*u,5*u);
   c.fillStyle='rgba(255,255,255,.9)';c.fillRect(x+w/2-.6*u,Y(top+3.5),1.2*u,ht*.3*u);
   c.fillStyle='#c8ccd0';c.font=F(4.4*u,true);c.textAlign='center';c.fillText('O',x+w/2,Y(top+ht-2.5))};
  const window=(yy,col)=>{rr(c,x+w/2-4*u,Y(yy),8*u,3.6*u,1*u,col,'rgba(0,0,0,.3)')};
@@ -502,8 +506,9 @@ function drawDev(c,d,x,y,w,h,bus,o={}){
  {const two=!cover&&d.desc;rr(c,x+3*u,Y(two?119.5:121.5),w-6*u,two?13*u:10*u,1.6*u,'rgba(255,255,255,.94)','#b9bec3');tx(c,d.tag,x+w/2,Y(two?125.6:129),w-8*u,6.2*u,true,'#11161b');if(two)tx(c,d.desc,x+w/2,Y(131),w-6*u,4.4*u,false,'#3b434c')}
  if(o.mark){c.beginPath();c.arc(x+w-5.5*u,Y(50.5),3.8*u,0,7);c.fillStyle=o.mark==='bad'?'#d33a2c':'#e08a1e';c.fill();c.lineWidth=1.1*u;c.strokeStyle='#fff';c.stroke()}
  /* propojovací lišta */
- if(bus&&!cover){c.fillStyle=lin(c,0,Y(10),0,Y(19),[[0,'#b4b9be'],[1,'#7d848a']]);c.fillRect(x-.5*u,Y(10),w+u,9*u);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(x-.5*u,Y(10.5),w+u,1.2*u);
-  for(let i=0;i<mods;i++){const cx=x+pw*(i+.5);c.fillStyle=lin(c,cx-2.4*u,0,cx+2.4*u,0,[[0,'#a86b2c'],[.5,'#e3a65e'],[1,'#a86b2c']]);c.fillRect(cx-2.4*u,Y(18),4.8*u,10*u)}}
+ if(bus&&!cover){for(let i=0;i<mods;i++){const cx=x+pw*(i+.5);c.fillStyle=lin(c,cx-2.6*u,0,cx+2.6*u,0,[[0,'#9a5f22'],[.5,'#f0b46a'],[1,'#9a5f22']]);c.fillRect(cx-2.6*u,Y(17),5.2*u,12*u)}
+  c.fillStyle=lin(c,0,Y(7),0,Y(19),[[0,'#c9cdd1'],[.25,'#aeb3b8'],[1,'#6f767c']]);c.fillRect(x-.5*u,Y(7),w+u,12*u);c.fillStyle='rgba(255,255,255,.45)';c.fillRect(x-.5*u,Y(7.4),w+u,1.4*u);c.fillStyle='rgba(0,0,0,.25)';c.fillRect(x-.5*u,Y(18.4),w+u,.8*u);
+  const ph=o.ph||[];for(let i=0;i<mods;i++){const t=ph[i];if(t&&t!=='L')tx(c,t,x+pw*(i+.5),Y(15.2),pw-2*u,5.2*u,true,t==='N'?'#cfe0ff':'#f4f5f6')}}
  /* kryt rozvaděče */
  if(cover){const cv=(a,b)=>{c.fillStyle=lin(c,0,Y(a),0,Y(b),[[0,'#fbfbf9'],[1,'#f1f1ee']]);c.fillRect(x-.5*u,Y(a),w+u,(b-a)*u)};cv(0,45);cv(135,180);
   c.fillStyle='rgba(0,0,0,.18)';c.fillRect(x-.5*u,Y(45),w+u,1.4*u);c.fillStyle='rgba(0,0,0,.08)';c.fillRect(x-.5*u,Y(133.6),w+u,1.4*u);
@@ -512,6 +517,7 @@ function drawDev(c,d,x,y,w,h,bus,o={}){
  if(o.wires&&!cover){const ph=o.ph||[];for(let i=0;i<mods;i++){const col=WC[ph[i]];if(!col)continue;const cx=x+pw*(i+.5),wd=Math.min(6.4*u,pw*.2);
    c.fillStyle=lin(c,cx-wd/2,0,cx+wd/2,0,[[0,col],[.4,'rgba(255,255,255,.35)'],[.6,col],[1,col]]);c.fillRect(cx-wd/2,Y(168),wd,y+h-Y(168));c.fillStyle=col;c.globalAlpha=.85;c.fillRect(cx-wd/2,Y(168),wd,y+h-Y(168));c.globalAlpha=1;
    c.fillStyle=lin(c,cx-wd/2,0,cx+wd/2,0,[[0,'rgba(0,0,0,0)'],[.35,'rgba(255,255,255,.4)'],[.6,'rgba(0,0,0,0)']]);c.fillRect(cx-wd/2,Y(168),wd,y+h-Y(168));
+   const fw=wd*1.25;c.fillStyle=lin(c,cx-fw/2,0,cx+fw/2,0,[[0,'#8d9399'],[.45,'#eef0f2'],[1,'#7a8086']]);c.fillRect(cx-fw/2,Y(166),fw,7*u);c.fillStyle=col;c.globalAlpha=.9;c.fillRect(cx-fw/2,Y(172),fw,4*u);c.globalAlpha=1;
    if(ph[i]!=='N'&&mods===1)tx(c,ph[i],cx+wd,y+h-2*u,w,5*u,true,'#333')}}
  c.restore()}
 const MW=40;let COVER=false;try{COVER=localStorage.getItem('rozv-cover')==='1'}catch(e){}
@@ -560,7 +566,7 @@ function head(){
 function draw(){
  if(row>=S.rows.length)row=S.rows.length-1;
  autowire();boardSel();$('encbox').classList.toggle('cover',COVER);
- const ck=checks(),marks=new Map(),phs=WIRES?phaseMap():new Map(),all0=S.rows.flat();
+ const ck=checks(),marks=new Map(),phs=phaseMap(),all0=S.rows.flat();
  ck.forEach(([cl,t])=>{if((cl!=='bad'&&cl!=='warn')||/^Chybí kabel|^Na štítku/.test(t))return;all0.forEach(d=>{if(d.tag&&new RegExp('(^|[^A-Z0-9])'+d.tag+'(?![0-9])').test(t)&&marks.get(d)!=='bad')marks.set(d,cl)})});
  $('osHint').textContent=all0.length?'Klepni na + pro přidání, na přístroj pro úpravy. Podržením přístroj chytíš a přetáhneš jinam.':'Rozvaděč je prázdný. Klepni na + nebo začni šablonou v kroku Skříň.';
  $('encinfo').textContent=S.sp.encrows?'Skříň: '+S.sp.enc+' · '+S.sp.encrows+' × '+S.mods+' modulů · Pde '+String(S.sp.pde).replace('.',',')+' W':'Skříň nevybrána · '+S.rows.length+' × '+S.mods+' modulů';
@@ -676,12 +682,12 @@ function page(title){
   c.strokeRect(x,y,w,100);text(c,n,x+12,y+30,w-20,18);text(c,v,x+12,y+72,w-20,26,true);return x+w},30);
  return{cv,c}}
 function layout(){
- const pages=[],per=3,DH=250,SP=282;
+ const pages=[],per=3,DH=250,SP=282,PM=phaseMap();
  for(let p=0;p<S.rows.length;p+=per){
   const pg=page('Osazení rozvaděče'),c=pg.c,m=Math.min(DH/4.5,1500/S.mods),x0=(W-m*S.mods)/2;
   S.rows.slice(p,p+per).forEach((r,i)=>{
    const y=136+i*SP;text(c,'Řada '+(p+i+1),x0,y,300,20,true);
-   let x=x0;const bs=buses(r);r.forEach(d=>{const w=d.w*m;drawDev(c,d,x,y+12,w,DH,bs.has(d));x+=w})});
+   let x=x0;const bs=buses(r);r.forEach(d=>{const w=d.w*m;drawDev(c,d,x,y+12,w,DH,bs.has(d),{ph:PM.get(d)});x+=w})});
   {const k=Math.min(per,S.rows.length-p),yb=136+k*SP-12,xw=m*S.mods;
    c.lineWidth=4;c.strokeStyle='#b9bec5';c.beginPath();c.roundRect?c.roundRect(x0-24,112,xw+48,yb-112+70,18):c.rect(x0-24,112,xw+48,yb-112+70);c.stroke();
    [['N','#2b6cd4',yb],['PE','#3a9a3a',yb+32]].forEach(([n,col,yy])=>{c.fillStyle=col;c.fillRect(x0,yy,xw,22);if(n==='PE'){c.fillStyle='#e6cf2a';for(let q=x0;q<x0+xw;q+=24)c.fillRect(q+12,yy,12,22)}
@@ -827,7 +833,7 @@ const PRESET={j1:['Světla','Zásuvky','Zásuvky kuchyň','Zásuvky koupelna','Z
  v1:['Hlavní vypínač'],v3:['Hlavní vypínač','Vypínač podružného rozvaděče'],km:['Bojler HDO','Topení','Ventilace','Osvětlení'],xs:['Servisní zásuvka']};
 function autoCable(d){if(!['j1','j3','rcbo'].includes(d.k)||!d.a)return'';return cableFor({...d,cable:''})}
 /* vodiče */
-let WIRES=false;try{WIRES=localStorage.getItem('rozv-wires')==='1'}catch(e){}
+let WIRES=true;try{WIRES=localStorage.getItem('rozv-wires')!=='0'}catch(e){}
 $('wires').checked=WIRES;$('cover').checked=COVER;$('cover').onchange=e=>{COVER=e.target.checked;try{localStorage.setItem('rozv-cover',COVER?'1':'0')}catch(x){}draw()};$('wires').onchange=e=>{WIRES=e.target.checked;try{localStorage.setItem('rozv-wires',WIRES?'1':'0')}catch(x){}draw()};
 /* přetahování (podržet a táhnout) */
 let pend=null,drag=null,justDragged=false,overEl=null;
@@ -938,7 +944,7 @@ function bomMap(B){const m=new Map(),add=(key,typ,popis,n,j='ks')=>{const x=m.ge
  const all=B.rows.flat().filter(d=>d.k!=='gap');
  all.forEach(d=>{const sp=spec(d),typ=[d.brand,d.model].filter(Boolean).join(' ')||TYPES[d.k].n+(sp?' '+sp:'');add('d|'+typ+'|'+d.k+'|'+sp,typ,TYPES[d.k].n+(sp?', '+sp:''),1)});
  B.rows.forEach(r=>{const bs=buses(r),key=x=>RCD.includes(x.k)?x.tag:x.from;let run=[];
-  const flush=()=>{if(run.length>1){const p=run.some(x=>x.k==='rcd2')&&!run.some(x=>['j3','rcd4'].includes(x.k))?'1P':'3P',n=run.reduce((a,x)=>a+x.w,0),br=run.map(x=>x.brand).find(Boolean)||'';
+  const flush=()=>{if(run.length>1){const par=B.rows.flat().find(x=>x.tag===run[0].from),p=par&&['rcd2','j1','v1'].includes(par.k)&&!run.some(x=>x.k==='j3')?'1P':'3P',n=run.reduce((a,x)=>a+x.w,0),br=run.map(x=>x.brand).find(Boolean)||'';
    add('comb|'+br+'|'+p+'|'+n,'Propojovací lišta '+p+(br?' '+br:''),'na '+n+' mod. ('+run[0].tag+'–'+run[run.length-1].tag+'), zkrátit z dlouhé lišty',1)}run=[]};
   r.forEach(x=>{if(!bs.has(x)){flush();return}if(run.length&&key(x)!==key(run[run.length-1])&&!(RCD.includes(run[run.length-1].k)&&x.from===run[run.length-1].tag))flush();run.push(x)});flush()});
  const free=B.rows.reduce((a,r)=>a+B.mods-used(r)+r.filter(d=>d.k==='gap').reduce((s,d)=>s+d.w,0),0);if(free)add('blank','Záslepky volných míst','lámací krytka, 1 modul = 18 mm',free,'mod.');
