@@ -553,7 +553,7 @@ function spec(d){
 function nextTag(s){if(!s)return'';const t=new Set(S.rows.flat().map(d=>d.tag));let i=1;while(t.has(s+i))i++;return s+i}
 let lt;function later(){clearTimeout(lt);lt=setTimeout(panels,400)}
 function head(){
- $('head').replaceChildren(...HEAD.map(([k,n])=>{const i=el('input',{value:S.head[k]||''});i.oninput=()=>{S.head[k]=i.value;store();later()};return el('label',{},n,i)}));
+ $('head').replaceChildren(...HEAD.map(([k,n])=>{const i=el('input',{value:S.head[k]||'',placeholder:k==='author'?'Jedlink Elektro':''});i.oninput=()=>{S.head[k]=i.value;store();later()};return el('label',{},n,i)}));
  $('spec').replaceChildren(...SPEC.map(([k,n,o])=>{const i=o?el('select',{},...o.map(v=>el('option',{value:v,textContent:v,selected:v===S.sp[k]}))):el('input',{value:S.sp[k]});i.oninput=()=>{S.sp[k]=i.value;if(k==='maddr'){try{localStorage.setItem('rozv-addr',i.value)}catch(e){}BOARDS.forEach(b=>b.sp.maddr=i.value)}store();later()};return el('label',{},n,i)}));
  $('mods').replaceChildren(...[...new Set([4,6,8,12,14,18,24,36,S.mods])].sort((a,b)=>a-b).map(n=>el('option',{value:n,textContent:n,selected:n===S.mods})));
 }
@@ -672,7 +672,7 @@ function page(title){
  text(c,title,tx0,85,900,34,true);text(c,'Rozvaděč '+(S.head.name||''),W-60,85,600,28,true,'right');
  c.font=F(17);c.textAlign='right';c.fillStyle='#555';c.fillText('Jedlink Elektro · +420 601 155 043 · info@jedlink.cz · www.jedlink.cz',W-34,H-10);
  const y=H-130;c.strokeRect(30,y,W-60,100);
- [['Zákazník',S.head.cust,350],['Adresa',S.head.addr,610],['Zpracoval',S.head.author,420],['Datum',S.head.date,244]].reduce((x,[n,v,w])=>{
+ [['Zákazník',S.head.cust,350],['Adresa',S.head.addr,610],['Zpracoval',S.head.author||'Jedlink Elektro',420],['Datum',S.head.date,244]].reduce((x,[n,v,w])=>{
   c.strokeRect(x,y,w,100);text(c,n,x+12,y+30,w-20,18);text(c,v,x+12,y+72,w-20,26,true);return x+w},30);
  return{cv,c}}
 function layout(){
